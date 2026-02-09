@@ -1,0 +1,129 @@
+package com.sicnelleapplicazioni.servlet;
+
+import com.sicnelleapplicazioni.service.CaptchaService;
+import com.sicnelleapplicazioni.service.RegistrationService;
+import com.sicnelleapplicazioni.servlet.RegistrationServlet;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+import java.io.IOException;
+
+import static org.mockito.Mockito.*;
+
+public class RegistrationServletTest {
+
+    @Mock
+    private HttpServletRequest request;
+    @Mock
+    private HttpServletResponse response;
+    @Mock
+    private HttpSession session;
+    @Mock
+    private RegistrationService registrationService;
+    @Mock
+    private CaptchaService captchaService;
+
+    private RegistrationServlet registrationServlet;
+
+    @BeforeEach
+    void setUp() throws ServletException {
+        MockitoAnnotations.openMocks(this);
+        registrationServlet = new RegistrationServlet(); // Instantiate directly
+        registrationServlet.setRegistrationService(registrationService); // Use setter
+        registrationServlet.setCaptchaService(captchaService); // Use setter
+
+        // Manually call init() after setting fields, if init() contains necessary setup logic
+        // In this case, our init() creates new services, so we don't want it to run normally
+        // unless we replace the services again after init, or mock the init behavior.
+        // For now, we will assume init() is NOT called, as we are directly setting the services.
+        // If init() had other necessary setup, it would need to be mocked or carefully managed.
+        // registrationServlet.init();
+
+        when(request.getSession()).thenReturn(session);
+        when(request.getContextPath()).thenReturn(""); // Mock context path for redirects
+    }
+
+    @Test
+    void testDoPost_CaptchaSuccess_RegistrationSuccess() throws ServletException, IOException {
+        String username = "testuser";
+        String password = "Password123!";
+        String captchaResponse = "valid-captcha-response";
+
+        when(request.getParameter("username")).thenReturn(username);
+        when(request.getParameter("password")).thenReturn(password);
+        when(request.getParameter("g-recaptcha-response")).thenReturn(captchaResponse);
+        when(captchaService.validateCaptcha(captchaResponse)).thenReturn(true);
+        when(registrationService.register(eq(username), any(char[].class))).thenReturn(true);
+
+        registrationServlet.doPost(request, response);
+
+        verify(captchaService, times(1)).validateCaptcha(captchaResponse);
+        verify(registrationService, times(1)).register(eq(username), any(char[].class));
+        verify(session, times(1)).setAttribute("successMessage", "Registration successful! Please check your email to verify your account.");
+        verify(response, times(1)).sendRedirect("/register.jsp");
+    }
+
+    @Test
+    void testDoPost_CaptchaFailure() throws ServletException, IOException {
+        String username = "testuser";
+        String password = "Password123!";
+        String captchaResponse = "invalid-captcha-response";
+
+        when(request.getParameter("username")).thenReturn(username);
+        when(request.getParameter("password")).thenReturn(password);
+        when(request.getParameter("g-recaptcha-response")).thenReturn(captchaResponse);
+        when(captchaService.validateCaptcha(captchaResponse)).thenReturn(false);
+
+        registrationServlet.doPost(request, response);
+
+        verify(captchaService, times(1)).validateCaptcha(captchaResponse);
+        verify(registrationService, never()).register(eq(username), any(char[].class)); // Registration should not happen
+        verify(session, times(1)).setAttribute("errorMessage", "CAPTCHA verification failed. Please try again.");
+        verify(response, times(1)).sendRedirect("/register.jsp");
+    }
+
+    @Test
+    void testDoPost_RegistrationFailure() throws ServletException, IOException {
+        String username = "testuser";
+        String password = "Password123!";
+        String captchaResponse = "valid-captcha-response";
+
+        when(request.getParameter("username")).thenReturn(username);
+        when(request.getParameter("password")).thenReturn(password);
+        when(request.getParameter("g-recaptcha-response")).thenReturn(captchaResponse);
+        when(captchaService.validateCaptcha(captchaResponse)).thenReturn(true);
+        when(registrationService.register(eq(username), any(char[].class))).thenReturn(false);
+
+        registrationServlet.doPost(request, response);
+
+        verify(captchaService, times(1)).validateCaptcha(captchaResponse);
+        verify(registrationService, times(1)).register(eq(username), any(char[].class));
+        verify(session, times(1)).setAttribute("errorMessage", "Registration failed. Please try again.");
+        verify(response, times(1)).sendRedirect("/register.jsp");
+    }
+
+    @Test
+    void testDoPost_CaptchaIOException() throws ServletException, IOException {
+        String username = "testuser";
+        String password = "Password123!";
+        String captchaResponse = "any-captcha-response";
+
+        when(request.getParameter("username")).thenReturn(username);
+        when(request.getParameter("password")).thenReturn(password);
+        when(request.getParameter("g-recaptcha-response")).thenReturn(captchaResponse);
+        when(captchaService.validateCaptcha(captchaResponse)).thenThrow(new IOException("Network error"));
+
+        registrationServlet.doPost(request, response);
+
+        verify(captchaService, times(1)).validateCaptcha(captchaResponse);
+        verify(registrationService, never()).register(eq(username), any(char[].class)); // Registration should not happen
+        verify(session, times(1)).setAttribute("errorMessage", "An unexpected error occurred during CAPTCHA validation. Please try again.");
+        verify(response, times(1)).sendRedirect("/register.jsp");
+    }
+}
