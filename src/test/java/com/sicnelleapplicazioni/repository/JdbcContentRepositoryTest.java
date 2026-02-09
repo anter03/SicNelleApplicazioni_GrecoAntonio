@@ -10,6 +10,7 @@ import java.sql.*;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID; // Import UUID
 
 import static org.mockito.Mockito.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -29,8 +30,6 @@ public class JdbcContentRepositoryTest {
     void setUp() throws SQLException {
         MockitoAnnotations.openMocks(this);
 
-        // Inizializziamo il repository sovrascrivendo il metodo di connessione
-        // se il repository non accetta la connessione nel costruttore.
         jdbcContentRepository = new JdbcContentRepository() {
             @Override
             protected Connection getConnection() throws SQLException {
@@ -38,7 +37,6 @@ public class JdbcContentRepositoryTest {
             }
         };
 
-        // Configurazione base dei mock per evitare ripetizioni nei test
         when(mockConnection.prepareStatement(anyString(), eq(Statement.RETURN_GENERATED_KEYS)))
                 .thenReturn(mockPreparedStatement);
         when(mockConnection.prepareStatement(anyString()))
@@ -48,54 +46,87 @@ public class JdbcContentRepositoryTest {
 
     @Test
     void testSave_Success() throws SQLException {
-        Content content = new Content(null, 1L, "test.txt", "uuid-filename.txt", "Test content", LocalDateTime.now());
+        Content content = new Content(UUID.randomUUID(), 1L, "test.txt", UUID.randomUUID().toString(), "text/plain", 1024, "/path/to/file", LocalDateTime.now(), "Test content preview");
 
         when(mockPreparedStatement.executeUpdate()).thenReturn(1);
-        when(mockResultSet.next()).thenReturn(true);
-        when(mockResultSet.getLong(1)).thenReturn(100L);
+        // For UUIDs, generatedKeys might not be used if ID is pre-generated
+        // For simplicity, we won't mock generatedKeys for save, as save returns void now.
 
-        Content savedContent = jdbcContentRepository.save(content);
-
-        assertNotNull(savedContent.getId());
-        assertEquals(100L, savedContent.getId());
+        jdbcContentRepository.save(content); // save returns void
 
         // Verifiche comportamentali
-        verify(mockPreparedStatement).setLong(eq(1), anyLong());
+        verify(mockPreparedStatement).setString(eq(1), anyString()); // ID
+        verify(mockPreparedStatement).setLong(eq(2), anyLong()); // UserId
+        verify(mockPreparedStatement).setString(eq(3), anyString()); // OriginalName
+        verify(mockPreparedStatement).setString(eq(4), anyString()); // InternalName
+        verify(mockPreparedStatement).setString(eq(5), anyString()); // MimeType
+        verify(mockPreparedStatement).setLong(eq(6), anyLong()); // Size
+        verify(mockPreparedStatement).setString(eq(7), anyString()); // FilePath
+        verify(mockPreparedStatement).setTimestamp(eq(8), any(Timestamp.class)); // CreatedAt
+
         verify(mockPreparedStatement).executeUpdate();
         verify(mockConnection).close();
     }
 
-
-
     @Test
-    void testFindByStoredFilename_Success() throws SQLException {
-        String storedFilename = "uuid-filename.txt";
+    void testFindById_Success() throws SQLException {
+        UUID contentId = UUID.randomUUID();
+        String internalName = UUID.randomUUID().toString();
         when(mockPreparedStatement.executeQuery()).thenReturn(mockResultSet);
         when(mockResultSet.next()).thenReturn(true);
 
-        // Setup dei dati nel ResultSet
-        when(mockResultSet.getLong("id")).thenReturn(1L);
+        when(mockResultSet.getString("id")).thenReturn(contentId.toString());
         when(mockResultSet.getLong("user_id")).thenReturn(101L);
-        when(mockResultSet.getString("filename")).thenReturn("original.txt");
-        when(mockResultSet.getString("stored_filename")).thenReturn(storedFilename);
-        when(mockResultSet.getTimestamp("upload_time")).thenReturn(Timestamp.valueOf(LocalDateTime.now()));
+        when(mockResultSet.getString("original_name")).thenReturn("original.txt");
+        when(mockResultSet.getString("internal_name")).thenReturn(internalName);
+        when(mockResultSet.getString("mime_type")).thenReturn("text/plain");
+        when(mockResultSet.getLong("file_size")).thenReturn(1024L);
+        when(mockResultSet.getString("file_path")).thenReturn("/path/to/file");
+        when(mockResultSet.getTimestamp("created_at")).thenReturn(Timestamp.valueOf(LocalDateTime.now()));
+        when(mockResultSet.getString("contentText")).thenReturn("Content Preview"); // Mock contentText
 
-        Optional<Content> foundContent = jdbcContentRepository.findByStoredFilename(storedFilename);
+        Optional<Content> foundContent = jdbcContentRepository.findById(contentId);
 
         assertTrue(foundContent.isPresent());
-        assertEquals(storedFilename, foundContent.get().getStoredFilename());
-        verify(mockPreparedStatement).setString(1, storedFilename);
+        assertEquals(contentId, foundContent.get().getId());
+        verify(mockPreparedStatement).setString(1, contentId.toString());
+        verify(mockConnection).close();
+    }
+
+
+    @Test
+    void testFindByInternalName_Success() throws SQLException {
+        UUID contentId = UUID.randomUUID();
+        String internalName = UUID.randomUUID().toString() + ".txt";
+        when(mockPreparedStatement.executeQuery()).thenReturn(mockResultSet);
+        when(mockResultSet.next()).thenReturn(true);
+
+        when(mockResultSet.getString("id")).thenReturn(contentId.toString());
+        when(mockResultSet.getLong("user_id")).thenReturn(101L);
+        when(mockResultSet.getString("original_name")).thenReturn("original.txt");
+        when(mockResultSet.getString("internal_name")).thenReturn(internalName);
+        when(mockResultSet.getString("mime_type")).thenReturn("text/plain");
+        when(mockResultSet.getLong("file_size")).thenReturn(1024L);
+        when(mockResultSet.getString("file_path")).thenReturn("/path/to/file");
+        when(mockResultSet.getTimestamp("created_at")).thenReturn(Timestamp.valueOf(LocalDateTime.now()));
+        when(mockResultSet.getString("contentText")).thenReturn("Content Preview");
+
+        Optional<Content> foundContent = jdbcContentRepository.findByInternalName(internalName); // Changed method name
+
+        assertTrue(foundContent.isPresent());
+        assertEquals(internalName, foundContent.get().getInternalName()); // Changed getter
+        verify(mockPreparedStatement).setString(1, internalName);
         verify(mockConnection).close();
     }
 
     @Test
-    void testDeleteById_Success() throws SQLException {
-        Long contentId = 1L;
+    void testDelete_Success() throws SQLException {
+        UUID contentId = UUID.randomUUID();
         when(mockPreparedStatement.executeUpdate()).thenReturn(1);
 
-        jdbcContentRepository.deleteById(contentId);
+        jdbcContentRepository.delete(contentId); // Changed method name and parameter type
 
-        verify(mockPreparedStatement).setLong(1, contentId);
+        verify(mockPreparedStatement).setString(1, contentId.toString());
         verify(mockConnection).close();
     }
 }

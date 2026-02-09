@@ -12,6 +12,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.Part;
+import javax.servlet.http.HttpSession;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -31,21 +32,23 @@ public class FileUploadServletTest {
     @Mock
     private RequestDispatcher requestDispatcher;
     @Mock
-    private Tika tika; // Mock Tika
+    private Tika tika;
     @Mock
-    private ContentRepository contentRepository; // Mock ContentRepository
+    private ContentRepository contentRepository;
+    @Mock
+    private HttpSession session;
 
     private FileUploadServlet fileUploadServlet;
+
+    private static final String MOCKED_CONTEXT_PATH = "/sicnelleapplicazioni";
 
     @BeforeEach
     void setUp() throws ServletException {
         MockitoAnnotations.openMocks(this);
         fileUploadServlet = new FileUploadServlet() {
-            // Override init to inject mocks
             @Override
             public void init() throws ServletException {
                 super.init();
-                // Using reflection to set the private fields.
                 try {
                     java.lang.reflect.Field tikaField = FileUploadServlet.class.getDeclaredField("tika");
                     tikaField.setAccessible(true);
@@ -61,8 +64,10 @@ public class FileUploadServletTest {
         };
         fileUploadServlet.init();
         when(request.getRequestDispatcher(anyString())).thenReturn(requestDispatcher);
-        when(request.getSession()).thenReturn(mock(javax.servlet.http.HttpSession.class)); // Mock session
-        // Ensure the UPLOAD_DIRECTORY exists for Tika.detect to not fail on file creation.
+        when(request.getSession()).thenReturn(session);
+        when(request.getContextPath()).thenReturn(MOCKED_CONTEXT_PATH);
+        when(session.getAttribute("userId")).thenReturn(1L);
+
         try {
             Files.createDirectories(Paths.get("/tmp/uploads"));
         } catch (IOException e) {
@@ -80,9 +85,9 @@ public class FileUploadServletTest {
 
         fileUploadServlet.doPost(request, response);
 
-        verify(request, times(1)).setAttribute(eq("message"), contains("uploaded successfully"));
-        verify(requestDispatcher, times(1)).forward(request, response);
         verify(contentRepository, times(1)).save(any());
+        verify(session, times(1)).setAttribute(eq("successMessage"), contains("uploaded successfully"));
+        verify(response, times(1)).sendRedirect(eq(MOCKED_CONTEXT_PATH + "/upload.jsp"));
     }
 
     @Test
@@ -91,12 +96,13 @@ public class FileUploadServletTest {
         when(request.getPart("file")).thenReturn(filePart);
         when(filePart.getSubmittedFileName()).thenReturn("test.jpg");
         when(filePart.getInputStream()).thenReturn(new ByteArrayInputStream(fileContent.getBytes()));
+        when(session.getAttribute("userId")).thenReturn(1L);
 
         fileUploadServlet.doPost(request, response);
 
-        verify(request, times(1)).setAttribute(eq("message"), eq("Only .txt files are allowed for upload."));
-        verify(requestDispatcher, times(1)).forward(request, response);
-        verify(tika, never()).detect(any(java.io.File.class)); // Tika should not be called
+        verify(session, times(1)).setAttribute(eq("errorMessage"), eq("Only .txt files are allowed for upload."));
+        verify(response, times(1)).sendRedirect(eq(MOCKED_CONTEXT_PATH + "/upload.jsp"));
+        verify(tika, never()).detect(any(java.io.File.class));
         verify(contentRepository, never()).save(any());
     }
 
@@ -104,15 +110,30 @@ public class FileUploadServletTest {
     void testDoPost_InvalidMimeType() throws ServletException, IOException {
         String fileContent = "This is actually an image disguised as text.";
         when(request.getPart("file")).thenReturn(filePart);
-        when(filePart.getSubmittedFileName()).thenReturn("image.txt"); // Valid extension
+        when(filePart.getSubmittedFileName()).thenReturn("image.txt");
         when(filePart.getInputStream()).thenReturn(new ByteArrayInputStream(fileContent.getBytes()));
-        when(tika.detect(any(java.io.File.class))).thenReturn("image/jpeg"); // Invalid MIME type
+        when(tika.detect(any(java.io.File.class))).thenReturn("image/jpeg");
+        when(session.getAttribute("userId")).thenReturn(1L);
 
         fileUploadServlet.doPost(request, response);
 
-        verify(request, times(1)).setAttribute(eq("message"), eq("Invalid file content type. Only plain text files are allowed."));
-        verify(requestDispatcher, times(1)).forward(request, response);
+        verify(session, times(1)).setAttribute(eq("errorMessage"), eq("Invalid file content type. Only plain text files are allowed."));
+        verify(response, times(1)).sendRedirect(eq(MOCKED_CONTEXT_PATH + "/upload.jsp"));
         verify(tika, times(1)).detect(any(java.io.File.class));
+        verify(contentRepository, never()).save(any());
+    }
+
+    @Test
+    void testDoPost_NoUserInSession() throws ServletException, IOException {
+        String fileContent = "This is a test text file.";
+        when(request.getPart("file")).thenReturn(filePart);
+        when(filePart.getSubmittedFileName()).thenReturn("test.txt");
+        when(filePart.getInputStream()).thenReturn(new ByteArrayInputStream(fileContent.getBytes()));
+        when(session.getAttribute("userId")).thenReturn(null);
+
+        fileUploadServlet.doPost(request, response);
+
+        verify(response, times(1)).sendRedirect(eq(MOCKED_CONTEXT_PATH + "/login.jsp"));
         verify(contentRepository, never()).save(any());
     }
 }

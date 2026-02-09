@@ -9,7 +9,7 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession; // Import HttpSession
+import javax.servlet.http.HttpSession;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -20,21 +20,24 @@ import java.util.List;
 import java.util.logging.Logger;
 import java.util.logging.Level;
 
-@WebServlet("/home") // ChangeWebServlet mapping to /home
+@WebServlet("/home")
 public class DisplayContentServlet extends HttpServlet {
 
     private static final Logger LOGGER = Logger.getLogger(DisplayContentServlet.class.getName());
-    private static final String UPLOAD_DIRECTORY = "/tmp/uploads"; // Define UPLOAD_DIRECTORY
+    // UPLOAD_DIRECTORY should be in configuration, but keeping it here for now
+    // This is the base directory where files are stored
+    private static final String BASE_FILE_STORAGE_PATH = "/tmp/uploads"; 
     private ContentRepository contentRepository;
 
     @Override
     public void init() throws ServletException {
         this.contentRepository = new JdbcContentRepository();
         try {
-            Files.createDirectories(Paths.get(UPLOAD_DIRECTORY));
+            // Ensure the base directory exists
+            Files.createDirectories(Paths.get(BASE_FILE_STORAGE_PATH));
         } catch (IOException e) {
-            LOGGER.log(Level.SEVERE, "Could not ensure upload directory exists for reading content", e);
-            throw new ServletException("Could not ensure upload directory exists for reading content", e);
+            LOGGER.log(Level.SEVERE, "Could not ensure base file storage directory exists", e);
+            throw new ServletException("Could not ensure base file storage directory exists", e);
         }
     }
 
@@ -42,21 +45,21 @@ public class DisplayContentServlet extends HttpServlet {
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         List<Content> contents = Collections.emptyList();
         String errorMessage = null;
-        HttpSession session = req.getSession(false); // Do not create session if it doesn't exist
+        HttpSession session = req.getSession(false);
 
         if (session != null && session.getAttribute("userId") != null) {
             Long userId = (Long) session.getAttribute("userId");
             try {
-                // Fetch content specific to the logged-in user
                 contents = contentRepository.findByUserId(userId);
 
-                // Read the actual content from files for display
                 for (Content content : contents) {
-                    Path filePath = Paths.get(UPLOAD_DIRECTORY, content.getStoredFilename());
-                    if (Files.exists(filePath)) {
-                        content.setContentText(Files.readString(filePath, StandardCharsets.UTF_8));
+                    // Use content.getFilePath() which is the absolute path where the file is stored
+                    Path fullFilePath = Paths.get(content.getFilePath());
+                    if (Files.exists(fullFilePath)) {
+                        // Read content text for preview
+                        content.setContentText(Files.readString(fullFilePath, StandardCharsets.UTF_8));
                     } else {
-                        LOGGER.log(Level.WARNING, "Content file not found: " + filePath.toString());
+                        LOGGER.log(Level.WARNING, "Content file not found: " + fullFilePath.toString() + " for content ID: " + content.getId());
                         content.setContentText("[Content not found]");
                     }
                 }
@@ -68,8 +71,6 @@ public class DisplayContentServlet extends HttpServlet {
                 errorMessage = "Impossibile recuperare i contenuti. Riprova più tardi o contatta l'assistenza.";
             }
         } else {
-            // If no userId in session, content list remains empty, or redirect to login handled by filter
-            // This case should ideally be handled by AuthenticationFilter, but provides a fallback
             errorMessage = "Autenticazione richiesta per visualizzare i contenuti.";
         }
 
@@ -77,6 +78,6 @@ public class DisplayContentServlet extends HttpServlet {
         if (errorMessage != null) {
             req.setAttribute("errorMessage", errorMessage);
         }
-        req.getRequestDispatcher("/home.jsp").forward(req, resp); // Forward to home.jsp
+        req.getRequestDispatcher("/home.jsp").forward(req, resp);
     }
 }

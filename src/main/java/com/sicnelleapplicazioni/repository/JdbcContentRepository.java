@@ -4,17 +4,16 @@ import com.sicnelleapplicazioni.model.Content;
 
 import java.sql.*;
 import java.time.LocalDateTime;
-import java.util.ArrayList; // Import ArrayList
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID; // Import UUID
 
 public class JdbcContentRepository implements ContentRepository {
 
-    // Placeholder for database connection details - these should be loaded securely in a real application.
-    private static final String DB_URL = "jdbc:sqlserver://;serverName=localhost\\SQLEXPRESS;databaseName=sicurezzaNelleApplicazioni;trustServerCertificate=true"; // Adjust if using Windows Authentication
-    private static final String DB_USER = "sa"; // Replace with your SQL Server username
-    private static final String DB_PASSWORD = "SqlServerMio160625"; // Replace with your SQL Server password
+    private static final String DB_URL = "jdbc:sqlserver://;serverName=localhost\\SQLEXPRESS;databaseName=sicurezzaNelleApplicazioni;trustServerCertificate=true";
+    private static final String DB_USER = "sa";
+    private static final String DB_PASSWORD = "SqlServerMio160625";
 
     protected Connection getConnection() throws SQLException {
         try {
@@ -26,31 +25,26 @@ public class JdbcContentRepository implements ContentRepository {
     }
 
     @Override
-    public Content save(Content content) {
-        String sql = "INSERT INTO content (user_id, filename, stored_filename, upload_time) VALUES (?, ?, ?, ?)";
+    public void save(Content content) { // Return type changed to void
+        String sql = "INSERT INTO contents (id, user_id, original_name, internal_name, mime_type, file_size, file_path, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
-            pstmt.setLong(1, content.getUserId());
-            pstmt.setString(2, content.getFilename());
-            pstmt.setString(3, content.getStoredFilename()); // Store stored_filename
-            pstmt.setTimestamp(4, Timestamp.valueOf(content.getUploadTime()));
+            pstmt.setString(1, content.getId().toString()); // Set UUID as String
+            pstmt.setLong(2, content.getUserId()); // Changed to Long
+            pstmt.setString(3, content.getOriginalName());
+            pstmt.setString(4, content.getInternalName());
+            pstmt.setString(5, content.getMimeType());
+            pstmt.setLong(6, content.getSize());
+            pstmt.setString(7, content.getFilePath());
+            pstmt.setTimestamp(8, Timestamp.valueOf(content.getCreatedAt()));
 
             int affectedRows = pstmt.executeUpdate();
 
             if (affectedRows == 0) {
                 throw new SQLException("Creating content failed, no rows affected.");
             }
-
-            try (ResultSet generatedKeys = pstmt.getGeneratedKeys()) {
-                if (generatedKeys.next()) {
-                    content.setId(generatedKeys.getLong(1));
-                } else {
-                    throw new SQLException("Creating content failed, no ID obtained.");
-                }
-            }
-            return content;
-
+            // No need to retrieve generated keys for UUID, as it's generated in Content constructor
         } catch (SQLException e) {
             System.err.println("Error saving content: " + e.getMessage());
             throw new RuntimeException("Error saving content", e);
@@ -58,11 +52,11 @@ public class JdbcContentRepository implements ContentRepository {
     }
 
     @Override
-    public Optional<Content> findById(Long id) {
-        String sql = "SELECT id, user_id, filename, stored_filename, upload_time FROM content WHERE id = ?";
+    public Optional<Content> findById(UUID id) { // Parameter type changed to UUID
+        String sql = "SELECT id, user_id, original_name, internal_name, mime_type, file_size, file_path, created_at FROM contents WHERE id = ?";
         try (Connection conn = getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setLong(1, id);
+            pstmt.setString(1, id.toString()); // Set UUID as String
             try (ResultSet rs = pstmt.executeQuery()) {
                 if (rs.next()) {
                     return Optional.of(mapResultSetToContent(rs));
@@ -76,30 +70,30 @@ public class JdbcContentRepository implements ContentRepository {
     }
 
     @Override
-    public Optional<Content> findByStoredFilename(String storedFilename) {
-        String sql = "SELECT id, user_id, filename, stored_filename, upload_time FROM content WHERE stored_filename = ?";
+    public Optional<Content> findByInternalName(String internalName) { // Renamed method
+        String sql = "SELECT id, user_id, original_name, internal_name, mime_type, file_size, file_path, created_at FROM contents WHERE internal_name = ?";
         try (Connection conn = getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setString(1, storedFilename);
+            pstmt.setString(1, internalName);
             try (ResultSet rs = pstmt.executeQuery()) {
                 if (rs.next()) {
                     return Optional.of(mapResultSetToContent(rs));
                 }
             }
         } catch (SQLException e) {
-            System.err.println("Error finding content by stored filename: " + e.getMessage());
-            throw new RuntimeException("Error finding content by stored filename", e);
+            System.err.println("Error finding content by internal name: " + e.getMessage());
+            throw new RuntimeException("Error finding content by internal name", e);
         }
         return Optional.empty();
     }
 
     @Override
-    public List<Content> findByUserId(Long userId) {
-        String sql = "SELECT id, user_id, filename, stored_filename, upload_time FROM content WHERE user_id = ?";
+    public List<Content> findByUserId(Long userId) { // Parameter type changed to Long
+        String sql = "SELECT id, user_id, original_name, internal_name, mime_type, file_size, file_path, created_at FROM contents WHERE user_id = ? ORDER BY created_at DESC";
         List<Content> contentList = new ArrayList<>();
         try (Connection conn = getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setLong(1, userId);
+            pstmt.setLong(1, userId); // Set Long
             try (ResultSet rs = pstmt.executeQuery()) {
                 while (rs.next()) {
                     contentList.add(mapResultSetToContent(rs));
@@ -114,7 +108,7 @@ public class JdbcContentRepository implements ContentRepository {
 
     @Override
     public List<Content> findAll() {
-        String sql = "SELECT id, user_id, filename, stored_filename, upload_time FROM content";
+        String sql = "SELECT id, user_id, original_name, internal_name, mime_type, file_size, file_path, created_at FROM contents ORDER BY created_at DESC";
         List<Content> contentList = new ArrayList<>();
         try (Connection conn = getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql);
@@ -130,11 +124,11 @@ public class JdbcContentRepository implements ContentRepository {
     }
 
     @Override
-    public void deleteById(Long id) {
-        String sql = "DELETE FROM content WHERE id = ?";
+    public void delete(UUID id) { // Renamed method, changed parameter type
+        String sql = "DELETE FROM contents WHERE id = ?";
         try (Connection conn = getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setLong(1, id);
+            pstmt.setString(1, id.toString()); // Set UUID as String
             pstmt.executeUpdate();
         } catch (SQLException e) {
             System.err.println("Error deleting content by ID: " + e.getMessage());
@@ -144,11 +138,14 @@ public class JdbcContentRepository implements ContentRepository {
 
     private Content mapResultSetToContent(ResultSet rs) throws SQLException {
         Content content = new Content();
-        content.setId(rs.getLong("id"));
-        content.setUserId(rs.getLong("user_id"));
-        content.setFilename(rs.getString("filename"));
-        content.setStoredFilename(rs.getString("stored_filename"));
-        content.setUploadTime(rs.getTimestamp("upload_time").toLocalDateTime());
+        content.setId(UUID.fromString(rs.getString("id"))); // Get UUID from String
+        content.setUserId(rs.getLong("user_id")); // Changed to getLong
+        content.setOriginalName(rs.getString("original_name"));
+        content.setInternalName(rs.getString("internal_name"));
+        content.setMimeType(rs.getString("mime_type"));
+        content.setSize(rs.getLong("file_size"));
+        content.setFilePath(rs.getString("file_path"));
+        content.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
         return content;
     }
 }

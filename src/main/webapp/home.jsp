@@ -9,6 +9,8 @@
     <div class="container">
         <h1>Welcome, <c:out value="${sessionScope.username != null ? sessionScope.username : sessionScope.email}" />!</h1>
 
+        <p><a href="${pageContext.request.contextPath}/logout">Logout</a></p>
+
         <c:if test="${not empty sessionScope.successMessage}">
             <p class="success-message"><c:out value="${sessionScope.successMessage}" /></p>
             <c:remove var="successMessage" scope="session" />
@@ -26,16 +28,23 @@
                     <thead>
                         <tr>
                             <th>File Name</th>
+                            <th>Type</th>
                             <th>Upload Time</th>
-                            <th>Content Preview</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         <c:forEach var="content" items="${requestScope.contents}">
                             <tr>
-                                <td><c:out value="${content.filename}" /></td>
-                                <td><c:out value="${content.uploadTime}" /></td>
-                                <td><c:out value="${content.contentText != null && content.contentText.length() > 100 ? content.contentText.substring(0, 100).concat('...') : content.contentText}" /></td>
+                                <td><c:out value="${content.originalName}" /></td>
+                                <td><c:out value="${content.mimeType}" /></td>
+                                <td><c:out value="${content.createdAt}" /></td>
+                                <td>
+                                    <!-- Action Links (Placeholders) -->
+                                    <a href="#">View</a> |
+                                    <a href="#">Download</a> |
+                                    <a href="#">Delete</a>
+                                </td>
                             </tr>
                         </c:forEach>
                     </tbody>

@@ -11,8 +11,13 @@
         <input type="submit" value="Upload">
     </form>
 
-    <c:if test="${not empty requestScope.message}">
-        <p><c:out value="${requestScope.message}" /></p>
+    <c:if test="${not empty sessionScope.errorMessage}">
+        <p style="color: red;"><c:out value="${sessionScope.errorMessage}" /></p>
+        <c:remove var="errorMessage" scope="session" />
+    </c:if>
+    <c:if test="${not empty sessionScope.successMessage}">
+        <p style="color: green;"><c:out value="${sessionScope.successMessage}" /></p>
+        <c:remove var="successMessage" scope="session" />
     </c:if>
 </body>
 </html>

@@ -1,34 +1,41 @@
 package com.sicnelleapplicazioni.model;
 
 import java.time.LocalDateTime;
+import java.util.UUID; // Import UUID
 
 public class Content {
-    private Long id;
-    private Long userId; // Link to the User who uploaded the content
-    private String filename; // Original filename
-    private String storedFilename; // UUID filename on disk
+    private UUID id;
+    private Long userId; // Changed from UUID to Long
+    private String originalName;
+    private String internalName;
+    private String mimeType;
+    private long size;
+    private String filePath;
+    private LocalDateTime createdAt;
     private String contentText; // Re-introduced for display purposes
-    private LocalDateTime uploadTime;
 
-    // Constructors
     public Content() {
+        this.id = UUID.randomUUID();
+        this.createdAt = LocalDateTime.now();
     }
 
-    public Content(Long id, Long userId, String filename, String storedFilename, String contentText, LocalDateTime uploadTime) {
+    public Content(UUID id, Long userId, String originalName, String internalName, String mimeType, long size, String filePath, LocalDateTime createdAt, String contentText) {
         this.id = id;
         this.userId = userId;
-        this.filename = filename;
-        this.storedFilename = storedFilename;
+        this.originalName = originalName;
+        this.internalName = internalName;
+        this.mimeType = mimeType;
+        this.size = size;
+        this.filePath = filePath;
+        this.createdAt = createdAt;
         this.contentText = contentText;
-        this.uploadTime = uploadTime;
     }
 
-    // Getters and Setters
-    public Long getId() {
+    public UUID getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(UUID id) {
         this.id = id;
     }
 
@@ -40,35 +47,59 @@ public class Content {
         this.userId = userId;
     }
 
-    public String getFilename() {
-        return filename;
+    public String getOriginalName() {
+        return originalName;
     }
 
-    public void setFilename(String filename) {
-        this.filename = filename;
+    public void setOriginalName(String originalName) {
+        this.originalName = originalName;
     }
 
-    public String getStoredFilename() {
-        return storedFilename;
+    public String getInternalName() {
+        return internalName;
     }
 
-    public void setStoredFilename(String storedFilename) {
-        this.storedFilename = storedFilename;
+    public void setInternalName(String internalName) {
+        this.internalName = internalName;
     }
 
-    public String getContentText() { // Getter for contentText
+    public String getMimeType() {
+        return mimeType;
+    }
+
+    public void setMimeType(String mimeType) {
+        this.mimeType = mimeType;
+    }
+
+    public long getSize() {
+        return size;
+    }
+
+    public void setSize(long size) {
+        this.size = size;
+    }
+
+    public String getFilePath() {
+        return filePath;
+    }
+
+    public void setFilePath(String filePath) {
+        this.filePath = filePath;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public String getContentText() {
         return contentText;
     }
 
-    public void setContentText(String contentText) { // Setter for contentText
+    public void setContentText(String contentText) {
         this.contentText = contentText;
-    }
-
-    public LocalDateTime getUploadTime() {
-        return uploadTime;
-    }
-
-    public void setUploadTime(LocalDateTime uploadTime) {
-        this.uploadTime = uploadTime;
     }
 }

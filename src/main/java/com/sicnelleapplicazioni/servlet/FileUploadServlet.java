@@ -12,15 +12,17 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import org.apache.tika.Tika; // Import Tika
-import org.apache.tika.mime.MediaType; // Import MediaType
-import java.nio.file.Path; // Import Path
-import java.nio.charset.StandardCharsets; // Import StandardCharsets
-import java.time.LocalDateTime; // Import LocalDateTime
-import com.sicnelleapplicazioni.model.Content; // Import Content
-import com.sicnelleapplicazioni.repository.ContentRepository; // Import ContentRepository
-import com.sicnelleapplicazioni.repository.JdbcContentRepository; // Import JdbcContentRepository
-import java.util.logging.Logger; // Import Logger
+import org.apache.tika.Tika;
+import org.apache.tika.mime.MediaType;
+import java.nio.file.Path;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import com.sicnelleapplicazioni.model.Content;
+import com.sicnelleapplicazioni.repository.ContentRepository;
+import com.sicnelleapplicazioni.repository.JdbcContentRepository;
+import java.util.logging.Logger;
+import java.util.UUID; // Import UUID
+import java.util.Collections; // For potential empty list
 
 @WebServlet("/upload")
 @MultipartConfig(
@@ -30,18 +32,17 @@ import java.util.logging.Logger; // Import Logger
 )
 public class FileUploadServlet extends HttpServlet {
 
-    private static final Logger LOGGER = Logger.getLogger(FileUploadServlet.class.getName()); // Initialize Logger
-    private static final String UPLOAD_DIRECTORY = "/tmp/uploads"; // Temporary directory for uploads
-    private Tika tika; // Tika instance
-    private ContentRepository contentRepository; // ContentRepository instance
+    private static final Logger LOGGER = Logger.getLogger(FileUploadServlet.class.getName());
+    private static final String BASE_FILE_STORAGE_PATH = "/tmp/uploads"; // Renamed and changed
+    private Tika tika;
+    private ContentRepository contentRepository;
 
     @Override
     public void init() throws ServletException {
-        // Ensure the upload directory exists
         try {
-            Files.createDirectories(Paths.get(UPLOAD_DIRECTORY));
-            tika = new Tika(); // Initialize Tika
-            contentRepository = new JdbcContentRepository(); // Initialize ContentRepository
+            Files.createDirectories(Paths.get(BASE_FILE_STORAGE_PATH)); // Use BASE_FILE_STORAGE_PATH
+            tika = new Tika();
+            contentRepository = new JdbcContentRepository();
         } catch (IOException e) {
             throw new ServletException("Could not create upload directory", e);
         }
@@ -50,79 +51,71 @@ public class FileUploadServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         String message = "";
-        Path tempFile = null; // Declare tempFile here
+        Path tempFile = null;
         try {
-            Part filePart = req.getPart("file"); // "file" is the name of the input field in the form
-            String fileName = Paths.get(filePart.getSubmittedFileName()).getFileName().toString(); // MSIE fix.
+            Part filePart = req.getPart("file");
+            String originalFileName = Paths.get(filePart.getSubmittedFileName()).getFileName().toString();
 
             // Validate file extension
-            if (!fileName.toLowerCase().endsWith(".txt")) {
+            if (!originalFileName.toLowerCase().endsWith(".txt")) {
                 message = "Only .txt files are allowed for upload.";
                 req.setAttribute("message", message);
                 req.getRequestDispatcher("/upload.jsp").forward(req, resp);
                 return;
             }
 
-            // Create a temporary file to store the upload for Tika processing
             tempFile = Files.createTempFile("upload-", ".tmp");
-            try (InputStream fileContent = filePart.getInputStream()) {
-                Files.copy(fileContent, tempFile, StandardCopyOption.REPLACE_EXISTING);
-            }
+            long fileSize = Files.copy(filePart.getInputStream(), tempFile, StandardCopyOption.REPLACE_EXISTING);
+            
+            String detectedMimeType = tika.detect(tempFile.toFile());
 
-            // Detect MIME type using Tika
-            String detectedMediaType = tika.detect(tempFile.toFile());
-
-            // Validate detected MIME type
-            if (!MediaType.TEXT_PLAIN.toString().equals(detectedMediaType)) {
+            if (!MediaType.TEXT_PLAIN.toString().equals(detectedMimeType)) {
                 message = "Invalid file content type. Only plain text files are allowed.";
                 req.setAttribute("message", message);
                 req.getRequestDispatcher("/upload.jsp").forward(req, resp);
-                // tempFile will be deleted in finally block
                 return;
             }
 
-            // If validation passes, move the temporary file to the final upload directory
-            // Files.move(tempFile, Paths.get(UPLOAD_DIRECTORY, fileName), StandardCopyOption.REPLACE_EXISTING); // No longer saving to file system directly after Tika
+            // Generate UUID filename (internalName)
+            String internalFileName = UUID.randomUUID().toString() + ".txt";
+            Path finalFilePath = Paths.get(BASE_FILE_STORAGE_PATH, internalFileName); // Use BASE_FILE_STORAGE_PATH
+            Files.move(tempFile, finalFilePath, StandardCopyOption.REPLACE_EXISTING);
+            tempFile = null;
 
-            String storedFilename = java.util.UUID.randomUUID().toString() + ".txt"; // Generate UUID filename
-            Path finalFilePath = Paths.get(UPLOAD_DIRECTORY, storedFilename);
-            Files.move(tempFile, finalFilePath, StandardCopyOption.REPLACE_EXISTING); // Save file to its final location
-            tempFile = null; // Clear tempFile reference as it's been moved
-
-            // TODO: Get actual user ID from session after authentication. For now, using a placeholder.
+            // Get userId from session
             Long userId = (Long) req.getSession().getAttribute("userId");
             if (userId == null) {
-                // For demonstration, if no user ID, use a dummy one or redirect to login
-                userId = 1L; // Dummy user ID
+                resp.sendRedirect(req.getContextPath() + "/login.jsp");
+                return;
             }
 
-            // Create and save Content object
+            // Create Content object
             Content content = new Content();
             content.setUserId(userId);
-            content.setFilename(fileName); // Original filename
-            content.setStoredFilename(storedFilename); // UUID filename
-            content.setUploadTime(LocalDateTime.now());
+            content.setOriginalName(originalFileName);
+            content.setInternalName(internalFileName);
+            content.setMimeType(detectedMimeType);
+            content.setSize(fileSize);
+            content.setFilePath(finalFilePath.toString()); // Store absolute path
+
             contentRepository.save(content);
 
-            message = "File '" + fileName + "' uploaded successfully and content saved!";
+            message = "File '" + originalFileName + "' uploaded successfully and content saved!";
             req.setAttribute("message", message);
             req.getRequestDispatcher("/upload.jsp").forward(req, resp);
 
         } catch (Exception e) {
             String ipAddress = req.getRemoteAddr();
-            Long userId = (Long) req.getSession().getAttribute("userId"); // Attempt to get userId from session
+            Long userId = (Long) req.getSession().getAttribute("userId");
 
-            // Log detailed error internally
             LOGGER.log(java.util.logging.Level.SEVERE,
                        String.format("File upload failed. User ID: %s, IP: %s, Error: %s",
                                      (userId != null ? userId.toString() : "N/A"), ipAddress, e.getMessage()), e);
 
-            // Provide generic error message to user as per RF8
             message = "Impossibile completare l'operazione di caricamento. Riprova più tardi o contatta l'assistenza.";
             req.setAttribute("message", message);
             req.getRequestDispatcher("/upload.jsp").forward(req, resp);
         } finally {
-            // Ensure temporary file is deleted even if an error occurs
             if (tempFile != null && Files.exists(tempFile)) {
                 try {
                     Files.delete(tempFile);

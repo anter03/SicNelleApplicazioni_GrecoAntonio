@@ -16,6 +16,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 2: Secure User Authentication & Session Management** - Enable secure user registration, login, and session handling.
 - [ ] **Phase 3: Secure Content & File Handling** - Implement secure upload and management of textual content, protected against injection and XSS.
 - [x] **Phase 4: Colmare le lacune funzionali che rappresentano vulnerabilità critiche** - Risolvere le vulnerabilità critiche nell'autenticazione, nell'autorizzazione e nella gestione delle sessioni.
+- [ ] **Phase 5: Home Page Implementation and File Persistence** - Implementa la funzionalità della Home Page e la persistenza dei file secondo le specifiche tecniche fornite.
 
 ## Phase Details
 
@@ -65,6 +66,18 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. La funzionalità di logout invalida la sessione e cancella i cookie.
 **Plans**: 04-PLAN.md (generated)
 
+### Phase 5: Home Page Implementation and File Persistence
+**Goal**: Implement the Home Page functionality and file persistence according to the provided technical specifications, ensuring secure display and access control.
+**Depends on**: Phase 4
+**Requirements**: (from user prompt)
+**Success Criteria** (what must be TRUE):
+  1. La tabella 'contents' è creata con lo schema specificato (UUID ID, FK su user_id, original_name, internal_name).
+  2. HomeServlet recupera e mostra solo i file dell'utente loggato.
+  3. home.jsp visualizza i file in una tabella con Nome File, Tipo, Data Caricamento e Azioni, usando <c:out> per XSS.
+  4. home.jsp ha un link di logout funzionante.
+  5. AuthenticationFilter blocca l'accesso non autenticato a home.jsp e alla servlet /home.
+**Plans**: 05-PLAN.md (generated)
+
 ## Progress
 
 | Phase | Status |
@@ -73,5 +86,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 | 2     | Completed |
 | 3     | Completed |
 | 4     | Completed |
+| 5     | Plans |
+
 
 
