@@ -9,14 +9,10 @@ public interface UserRepository {
     User save(User user);
 
     Optional<User> findByUsername(String username);
+    Optional<User> findByEmail(String email);
 
-    void incrementFailedLoginAttempts(String username);
-
-    void resetFailedLoginAttempts(String username);
-
-    void lockAccount(String username);
-
-    void unlockAccount(String username);
-
-    Optional<User> findByVerificationToken(String token);
+    void incrementFailedAttempts(String identifier); // Changed to 'identifier' as it could be username or email
+    void resetFailedAttempts(String identifier);
+    void lockAccount(String identifier);
+    void unlockAccount(String identifier);
 }

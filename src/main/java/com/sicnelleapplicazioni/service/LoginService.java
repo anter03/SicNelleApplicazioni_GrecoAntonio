@@ -4,13 +4,10 @@ import com.sicnelleapplicazioni.model.User;
 import com.sicnelleapplicazioni.repository.UserRepository;
 import com.sicnelleapplicazioni.security.PasswordUtil;
 
-import java.util.Arrays;
+import java.time.Instant;
 import java.util.Optional;
 
 public class LoginService {
-
-    private static final int MAX_FAILED_ATTEMPTS = 5;
-    private static final long LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
 
     private final UserRepository userRepository;
 
@@ -18,42 +15,49 @@ public class LoginService {
         this.userRepository = userRepository;
     }
 
-    public Optional<User> login(String username, char[] password) {
-        try {
-            Optional<User> userOptional = userRepository.findByUsername(username);
-            if (userOptional.isPresent()) {
-                User user = userOptional.get();
+    public boolean authenticate(String identifier, char[] password) { // 'identifier' can be username or email
+        if (identifier == null || identifier.trim().isEmpty() || password == null || password.length == 0) {
+            return false;
+        }
 
-                if (user.isAccountLocked()) {
-                    long timeSinceLockout = System.currentTimeMillis() - user.getLockoutTime();
-                    if (timeSinceLockout > LOCKOUT_DURATION_MS) {
-                        userRepository.unlockAccount(username);
-                    } else {
-                        // Account is still locked
-                        return Optional.empty();
-                    }
-                }
+        Optional<User> userOptional = userRepository.findByEmail(identifier);
+        if (userOptional.isEmpty()) {
+            userOptional = userRepository.findByUsername(identifier);
+        }
 
-                if (PasswordUtil.verifyPassword(password, user.getSalt(), user.getHashedPassword())) {
-                    userRepository.resetFailedLoginAttempts(username);
-                    return Optional.of(user);
-                } else {
-                    userRepository.incrementFailedLoginAttempts(username);
-                    if (user.getFailedLoginAttempts() + 1 >= MAX_FAILED_ATTEMPTS) {
-                        userRepository.lockAccount(username);
-                    }
-                    return Optional.empty();
-                }
+        if (userOptional.isPresent()) {
+            User user = userOptional.get();
+
+            // Check if account is locked
+            if (user.isAccountLocked()) { // Using the isAccountLocked() helper from User model
+                return false;
             }
 
-            // To prevent timing attacks, we perform a dummy hash calculation when the user is not found.
-            // The salt should be a constant dummy value.
-            byte[] dummySalt = new byte[16]; // Dummy salt
-            PasswordUtil.hashPassword(password, dummySalt); // Dummy hash
-            return Optional.empty();
-        } finally {
-            // Securely clear the password from memory
-            Arrays.fill(password, '\0');
+            // Assuming PasswordUtil has a method to verify password
+            if (PasswordUtil.verifyPassword(password, user.getSalt(), user.getPasswordHash())) {
+                // Reset failed login attempts on successful login
+                userRepository.resetFailedAttempts(identifier);
+                user.setLastLogin(Instant.now()); // Update last login time
+                userRepository.save(user); // Explicitly save the user to persist lastLogin
+                return true;
+            } else {
+                // Increment failed login attempts on failed password
+                userRepository.incrementFailedAttempts(identifier);
+                // Optionally, call lockAccount if failed attempts exceed a threshold
+                // This threshold logic should be implemented in the UserRepository.incrementFailedAttempts or a separate service
+                Optional<User> updatedUser = userRepository.findByEmail(identifier); // Re-fetch user to get updated failedAttempts
+                if (updatedUser.isEmpty()) { // Try by username if not found by email
+                    updatedUser = userRepository.findByUsername(identifier);
+                }
+
+                if (updatedUser.isPresent() && updatedUser.get().getFailedAttempts() >= 5) { // Example threshold
+                    userRepository.lockAccount(identifier);
+                }
+                return false;
+            }
         }
+        // Increment failed login attempts for non-existent user to prevent enumeration attacks
+        userRepository.incrementFailedAttempts(identifier);
+        return false;
     }
 }

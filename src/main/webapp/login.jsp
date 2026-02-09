@@ -2,26 +2,18 @@
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <html>
 <head>
-    <title>Register</title>
+    <title>Login</title>
     <link rel="stylesheet" type="text/css" href="${pageContext.request.contextPath}/css/style.css">
 </head>
 <body>
     <div class="login-container">
-        <h1>Register</h1>
-        <form action="${pageContext.request.contextPath}/register" method="post">
-            <label for="username">Username:</label><br>
-            <input type="text" id="username" name="username" required><br><br>
-
+        <h1>Login</h1>
+        <form action="${pageContext.request.contextPath}/login" method="post">
             <label for="email">Email:</label><br>
-            <input type="email" id="email" name="email" required><br><br> <!-- Type changed to email for better UX -->
-
+            <input type="text" id="email" name="email" required><br><br>
             <label for="password">Password:</label><br>
             <input type="password" id="password" name="password" required><br><br>
-
-            <label for="fullName">Full Name:</label><br>
-            <input type="text" id="fullName" name="fullName" required><br><br>
-
-            <input type="submit" value="Register">
+            <input type="submit" value="Login">
         </form>
         <c:if test="${not empty sessionScope.errorMessage}">
             <p class="error-message"><c:out value="${sessionScope.errorMessage}" /></p>

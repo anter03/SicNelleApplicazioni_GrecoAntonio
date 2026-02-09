@@ -6,99 +6,47 @@ import com.sicnelleapplicazioni.repository.UserRepository;
 import com.sicnelleapplicazioni.security.PasswordUtil;
 
 import java.util.Arrays;
+import java.time.Instant;
 
 public class RegistrationService {
 
-
-
     private final UserRepository userRepository;
+    // EmailService no longer needed for verification, but might be for other purposes
+    // private final EmailService emailService;
 
-    private final EmailService emailService;
-
-
-
-    public RegistrationService(UserRepository userRepository, EmailService emailService) {
-
+    public RegistrationService(UserRepository userRepository) { // Removed EmailService from constructor
         this.userRepository = userRepository;
-
-        this.emailService = emailService;
-
+        // this.emailService = emailService;
     }
 
-
-
-    public boolean register(String username, char[] password) {
-
+    public boolean register(String username, String email, char[] password, String fullName) {
         try {
-
             if (!PasswordPolicyValidator.validate(password)) {
-
                 return false;
-
             }
 
-
-
-            if (userRepository.findByUsername(username).isPresent()) {
-
-                // User already exists. To prevent timing attacks, we perform a dummy hash calculation.
-
-                // The salt should be a constant dummy value.
-
-                byte[] dummySalt = new byte[16];
-
-                PasswordUtil.hashPassword(password, dummySalt);
-
-                return true; // Return true to not reveal that the user already exists
-
+            // Check if username or email already exists
+            if (userRepository.findByUsername(username).isPresent() || userRepository.findByEmail(email).isPresent()) {
+                return false;
             }
 
-
-
-            byte[] salt = PasswordUtil.generateSalt();
-
-            byte[] hashedPassword = PasswordUtil.hashPassword(password, salt);
-
-            String verificationToken = generateVerificationToken();
-
-
+            String salt = PasswordUtil.generateSalt();
+            String passwordHash = PasswordUtil.hashPassword(password, salt);
 
             User user = new User();
-
             user.setUsername(username);
-
+            user.setEmail(email);
+            user.setPasswordHash(passwordHash);
             user.setSalt(salt);
-
-            user.setHashedPassword(hashedPassword);
-
-            user.setVerificationToken(verificationToken);
-
-            user.setEmailVerified(false);
-
-
+            user.setFullName(fullName);
+            user.setFailedAttempts(0); // Default value
+            user.setLockoutUntil(null); // Default to not locked
 
             userRepository.save(user);
-
-            emailService.sendVerificationEmail(user, verificationToken);
-
+            // Removed email verification logic
             return true;
-
         } finally {
-
             Arrays.fill(password, '\0');
-
         }
-
     }
-
-
-
-    private String generateVerificationToken() {
-
-        // In a real application, this would be a more robust, secure random token.
-
-        return java.util.UUID.randomUUID().toString();
-
-    }
-
 }

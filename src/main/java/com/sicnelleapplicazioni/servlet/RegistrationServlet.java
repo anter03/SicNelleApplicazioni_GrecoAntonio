@@ -1,9 +1,9 @@
+package com.sicnelleapplicazioni.servlet;
+
 import com.sicnelleapplicazioni.repository.JdbcUserRepository;
 import com.sicnelleapplicazioni.repository.UserRepository;
-import com.sicnelleapplicazioni.service.CaptchaService;
-import com.sicnelleapplicazioni.service.EmailService;
 import com.sicnelleapplicazioni.service.RegistrationService;
-import com.sicnelleapplicazioni.util.ValidationUtil; // Add this import
+import com.sicnelleapplicazioni.util.ValidationUtil;
 
 import java.security.SecureRandom;
 
@@ -19,26 +19,12 @@ import java.io.IOException;
 public class RegistrationServlet extends HttpServlet {
 
     private RegistrationService registrationService;
-    private CaptchaService captchaService; // Add CaptchaService instance
-
-    // Public setters for testing purposes
-    public void setRegistrationService(RegistrationService registrationService) {
-        this.registrationService = registrationService;
-    }
-
-    public void setCaptchaService(CaptchaService captchaService) {
-        this.captchaService = captchaService;
-    }
 
     @Override
     public void init() throws ServletException {
         // Instantiate dependencies
         UserRepository userRepository = new JdbcUserRepository();
-        EmailService emailService = new EmailService();
-        this.registrationService = new RegistrationService(userRepository, emailService);
-
-        // Instantiate CaptchaService
-        this.captchaService = new CaptchaService("YOUR_RECAPTCHA_SECRET_KEY"); // Placeholder secret key
+        this.registrationService = new RegistrationService(userRepository); // Updated constructor
     }
 
     @Override
@@ -46,33 +32,29 @@ public class RegistrationServlet extends HttpServlet {
         HttpSession session = req.getSession();
 
         String username = req.getParameter("username");
+        String email = req.getParameter("email");
         char[] password = req.getParameter("password").toCharArray();
+        String fullName = req.getParameter("fullName"); // New parameter
 
-        // Server-side Username Validation
+        // Server-side Validation
         if (!ValidationUtil.isValidUsername(username)) {
             session.setAttribute("errorMessage", "Invalid username. Username must be alphanumeric and between 3 and 20 characters.");
             resp.sendRedirect(req.getContextPath() + "/register.jsp");
             return;
         }
-
-        // CAPTCHA Validation
-        String captchaResponse = req.getParameter("g-recaptcha-response");
-        try {
-            if (!this.captchaService.validateCaptcha(captchaResponse)) { // Use instance method
-                // Log this attempt for monitoring
-                System.out.println("CAPTCHA validation failed for user: " + username);
-                session.setAttribute("errorMessage", "CAPTCHA verification failed. Please try again.");
-                resp.sendRedirect(req.getContextPath() + "/register.jsp");
-                return;
-            }
-        } catch (IOException e) {
-            System.err.println("Error while validating CAPTCHA: " + e.getMessage());
-            session.setAttribute("errorMessage", "An unexpected error occurred during CAPTCHA validation. Please try again.");
+        if (!ValidationUtil.isValidEmail(email)) {
+            session.setAttribute("errorMessage", "Invalid email address. Please enter a valid email.");
+            resp.sendRedirect(req.getContextPath() + "/register.jsp");
+            return;
+        }
+        // Basic full name validation (can be expanded)
+        if (fullName == null || fullName.trim().isEmpty() || fullName.length() > 100) {
+            session.setAttribute("errorMessage", "Full name is required and cannot exceed 100 characters.");
             resp.sendRedirect(req.getContextPath() + "/register.jsp");
             return;
         }
 
-        boolean success = registrationService.register(username, password);
+        boolean success = registrationService.register(username, email, password, fullName);
 
         // Add a random delay to mitigate timing attacks
         try {
@@ -82,10 +64,10 @@ public class RegistrationServlet extends HttpServlet {
         }
 
         if (success) {
-            session.setAttribute("successMessage", "Registration successful! Please check your email to verify your account.");
-            resp.sendRedirect(req.getContextPath() + "/register.jsp");
+            session.setAttribute("successMessage", "Registration successful! You can now log in."); // Removed email verification message
+            resp.sendRedirect(req.getContextPath() + "/login.jsp"); // Redirect to login page
         } else {
-            session.setAttribute("errorMessage", "Registration failed. Please try again.");
+            session.setAttribute("errorMessage", "Registration failed. Username or email might already be in use. Please try again.");
             resp.sendRedirect(req.getContextPath() + "/register.jsp");
         }
     }

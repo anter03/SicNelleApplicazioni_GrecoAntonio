@@ -5,14 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-02-09)
 
 **Core value:** Registrazione e login con password protette da hashing robusto (SHA-256 + Salt) e gestione del lifetime delle credenziali in memoria (uso di char[] e Arrays.fill()).
-**Current focus:** All phases completed.
+**Current focus:** Working on Phase 3: Secure Content & File Handling.
 
 ## Current Position
 
-Phase: All phases (3 of 3) completed.
-Last activity: Monday, February 9, 2026 — Phase 3 completed.
+Phase: 3 of 4.
+Last activity: Monday, February 9, 2026 — Phase 3 in progress.
 
-Progress: [██████████] 100%
+Progress: [████████--] 75%
 
 ## Performance Metrics
 

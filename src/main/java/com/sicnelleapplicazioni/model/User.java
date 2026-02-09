@@ -1,16 +1,24 @@
 package com.sicnelleapplicazioni.model;
 
+import java.time.Instant;
+
 public class User {
 
-    private Long id;
-    private String username;
-    private byte[] hashedPassword;
-    private byte[] salt;
-    private int failedLoginAttempts;
-    private boolean accountLocked;
-    private long lockoutTime;
-    private String verificationToken;
-    private boolean emailVerified;
+    private Long id; // Corresponds to id INT IDENTITY(1,1) NOT NULL
+    private String username; // Corresponds to username NVARCHAR(20)
+    private String email; // Corresponds to email NVARCHAR(128)
+    private String passwordHash; // Corresponds to password_hash NVARCHAR(255)
+    private String salt; // Corresponds to salt NVARCHAR(64)
+    private String fullName; // Corresponds to full_name NVARCHAR(100)
+    private int failedAttempts; // Corresponds to failed_attempts INT DEFAULT 0
+    private Instant lockoutUntil; // Corresponds to lockout_until DATETIME2 NULL
+    private Instant lastLogin; // Corresponds to last_login TIMESTAMP NULL
+
+    public User() {
+        this.failedAttempts = 0;
+    }
+
+    // Getters and Setters for all fields
 
     public Long getId() {
         return id;
@@ -28,59 +36,63 @@ public class User {
         this.username = username;
     }
 
-    public byte[] getHashedPassword() {
-        return hashedPassword;
+    public String getEmail() {
+        return email;
     }
 
-    public void setHashedPassword(byte[] hashedPassword) {
-        this.hashedPassword = hashedPassword;
+    public void setEmail(String email) {
+        this.email = email;
     }
 
-    public byte[] getSalt() {
+    public String getPasswordHash() {
+        return passwordHash;
+    }
+
+    public void setPasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
+    }
+
+    public String getSalt() {
         return salt;
     }
 
-    public void setSalt(byte[] salt) {
+    public void setSalt(String salt) {
         this.salt = salt;
     }
 
-    public int getFailedLoginAttempts() {
-        return failedLoginAttempts;
+    public String getFullName() {
+        return fullName;
     }
 
-    public void setFailedLoginAttempts(int failedLoginAttempts) {
-        this.failedLoginAttempts = failedLoginAttempts;
+    public void setFullName(String fullName) {
+        this.fullName = fullName;
+    }
+
+    public int getFailedAttempts() {
+        return failedAttempts;
+    }
+
+    public void setFailedAttempts(int failedAttempts) {
+        this.failedAttempts = failedAttempts;
+    }
+
+    public Instant getLockoutUntil() {
+        return lockoutUntil;
+    }
+
+    public void setLockoutUntil(Instant lockoutUntil) {
+        this.lockoutUntil = lockoutUntil;
+    }
+
+    public Instant getLastLogin() {
+        return lastLogin;
+    }
+
+    public void setLastLogin(Instant lastLogin) {
+        this.lastLogin = lastLogin;
     }
 
     public boolean isAccountLocked() {
-        return accountLocked;
-    }
-
-    public void setAccountLocked(boolean accountLocked) {
-        this.accountLocked = accountLocked;
-    }
-
-    public long getLockoutTime() {
-        return lockoutTime;
-    }
-
-    public void setLockoutTime(long lockoutTime) {
-        this.lockoutTime = lockoutTime;
-    }
-
-    public String getVerificationToken() {
-        return verificationToken;
-    }
-
-    public void setVerificationToken(String verificationToken) {
-        this.verificationToken = verificationToken;
-    }
-
-    public boolean isEmailVerified() {
-        return emailVerified;
-    }
-
-    public void setEmailVerified(boolean emailVerified) {
-        this.emailVerified = emailVerified;
+        return lockoutUntil != null && lockoutUntil.isAfter(Instant.now());
     }
 }
