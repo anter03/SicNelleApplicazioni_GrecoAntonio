@@ -7,16 +7,16 @@ import com.sicnelleapplicazioni.security.PasswordUtil;
 
 import java.util.Arrays;
 import java.time.Instant;
+// Removed Logger imports
 
 public class RegistrationService {
 
-    private final UserRepository userRepository;
-    // EmailService no longer needed for verification, but might be for other purposes
-    // private final EmailService emailService;
+    // Removed Logger field
 
-    public RegistrationService(UserRepository userRepository) { // Removed EmailService from constructor
+    private final UserRepository userRepository;
+
+    public RegistrationService(UserRepository userRepository) {
         this.userRepository = userRepository;
-        // this.emailService = emailService;
     }
 
     public boolean register(String username, String email, char[] password, String fullName) {
@@ -26,7 +26,10 @@ public class RegistrationService {
             }
 
             // Check if username or email already exists
-            if (userRepository.findByUsername(username).isPresent() || userRepository.findByEmail(email).isPresent()) {
+            if (userRepository.findByUsername(username).isPresent()) {
+                return false;
+            }
+            if (userRepository.findByEmail(email).isPresent()) {
                 return false;
             }
 
@@ -43,8 +46,10 @@ public class RegistrationService {
             user.setLockoutUntil(null); // Default to not locked
 
             userRepository.save(user);
-            // Removed email verification logic
             return true;
+        } catch (Exception e) {
+            // Re-throw as RuntimeException or handle more gracefully if needed
+            throw new RuntimeException("Error during registration for username: " + username + ", email: " + email, e);
         } finally {
             Arrays.fill(password, '\0');
         }

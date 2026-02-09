@@ -67,7 +67,7 @@ public class RegistrationServlet extends HttpServlet {
             session.setAttribute("successMessage", "Registration successful! You can now log in."); // Removed email verification message
             resp.sendRedirect(req.getContextPath() + "/login.jsp"); // Redirect to login page
         } else {
-            session.setAttribute("errorMessage", "Registration failed. Username or email might already be in use. Please try again.");
+            session.setAttribute("errorMessage", "Impossibile completare la registrazione. I dati inseriti non sono validi o sono già associati a un account");
             resp.sendRedirect(req.getContextPath() + "/register.jsp");
         }
     }

@@ -12,11 +12,16 @@ import java.util.Optional;
 public class JdbcContentRepository implements ContentRepository {
 
     // Placeholder for database connection details - these should be loaded securely in a real application.
-    private static final String DB_URL = "jdbc:mysql://localhost:3306/sic_db?useSSL=true&requireSSL=true";
-    private static final String DB_USER = "sic_user";
-    private static final String DB_PASSWORD = "PasswordSicura123!";
+    private static final String DB_URL = "jdbc:sqlserver://;serverName=localhost\\SQLEXPRESS;databaseName=sicurezzaNelleApplicazioni;trustServerCertificate=true"; // Adjust if using Windows Authentication
+    private static final String DB_USER = "sa"; // Replace with your SQL Server username
+    private static final String DB_PASSWORD = "SqlServerMio160625"; // Replace with your SQL Server password
 
     protected Connection getConnection() throws SQLException {
+        try {
+            Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
+        } catch (ClassNotFoundException e) {
+            throw new SQLException("SQL Server JDBC Driver not found", e);
+        }
         return DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
     }
 

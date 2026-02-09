@@ -25,6 +25,27 @@ public class InMemoryUserRepository implements UserRepository {
     }
 
     @Override
+    public User update(User user) {
+        if (user.getId() == null) {
+            throw new IllegalArgumentException("User ID cannot be null for update operation.");
+        }
+        // Remove old entries if username or email changed (basic handling)
+        // More robust would be to fetch old user and compare
+        // For simplicity in in-memory, we assume username/email are stable keys for update for now.
+        // If username or email changes, it would create new entries and orphan old ones.
+        // A real in-memory store might need a map by ID as well.
+
+        if (usersByUsername.containsKey(user.getUsername())) {
+            usersByUsername.put(user.getUsername(), user);
+        }
+        if (usersByEmail.containsKey(user.getEmail())) {
+            usersByEmail.put(user.getEmail(), user);
+        }
+        return user;
+    }
+
+
+    @Override
     public Optional<User> findByUsername(String username) {
         return Optional.ofNullable(usersByUsername.get(username));
     }
@@ -55,11 +76,13 @@ public class InMemoryUserRepository implements UserRepository {
         usersByEmail.computeIfPresent(identifier, (k, user) -> {
             user.setFailedAttempts(0);
             user.setLockoutUntil(null); // Unlock
+            user.setLastLogin(Instant.now()); // Update last login time
             return user;
         });
         usersByUsername.computeIfPresent(identifier, (k, user) -> {
             user.setFailedAttempts(0);
             user.setLockoutUntil(null); // Unlock
+            user.setLastLogin(Instant.now()); // Update last login time
             return user;
         });
     }
@@ -89,5 +112,4 @@ public class InMemoryUserRepository implements UserRepository {
             return user;
         });
     }
-    // Removed findByVerificationToken as it's no longer in the User model
 }

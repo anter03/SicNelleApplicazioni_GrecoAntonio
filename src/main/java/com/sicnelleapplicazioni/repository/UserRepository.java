@@ -15,4 +15,6 @@ public interface UserRepository {
     void resetFailedAttempts(String identifier);
     void lockAccount(String identifier);
     void unlockAccount(String identifier);
+
+    User update(User user);
 }

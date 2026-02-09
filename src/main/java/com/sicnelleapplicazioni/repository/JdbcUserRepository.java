@@ -5,8 +5,12 @@ import com.sicnelleapplicazioni.model.User;
 import java.sql.*;
 import java.time.Instant;
 import java.util.Optional;
+import java.util.logging.Level; // Import Level
+import java.util.logging.Logger; // Import Logger
 
 public class JdbcUserRepository implements UserRepository {
+
+    private static final Logger LOGGER = Logger.getLogger(JdbcUserRepository.class.getName()); // Add Logger
 
     private static final String DB_URL = "jdbc:sqlserver://;serverName=localhost\\SQLEXPRESS;databaseName=sicurezzaNelleApplicazioni;trustServerCertificate=true";
     private static final String DB_USER = "sa";
@@ -56,6 +60,35 @@ public class JdbcUserRepository implements UserRepository {
         }
     }
 
+    @Override
+    public User update(User user) {
+        String sql = "UPDATE users SET username = ?, email = ?, password_hash = ?, salt = ?, full_name = ?, failed_attempts = ?, lockout_until = ?, last_login = ? WHERE id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, user.getUsername());
+            pstmt.setString(2, user.getEmail());
+            pstmt.setString(3, user.getPasswordHash());
+            pstmt.setString(4, user.getSalt());
+            pstmt.setString(5, user.getFullName());
+            pstmt.setInt(6, user.getFailedAttempts());
+            pstmt.setTimestamp(7, user.getLockoutUntil() != null ? Timestamp.from(user.getLockoutUntil()) : null);
+            pstmt.setTimestamp(8, user.getLastLogin() != null ? Timestamp.from(user.getLastLogin()) : null);
+            pstmt.setLong(9, user.getId());
+
+            int affectedRows = pstmt.executeUpdate();
+
+            if (affectedRows == 0) {
+                throw new SQLException("Updating user failed, no rows affected for user ID: " + user.getId());
+            }
+            return user;
+
+        } catch (SQLException e) {
+            System.err.println("Error updating user: " + e.getMessage());
+            throw new RuntimeException("Error updating user", e);
+        }
+    }
+
     private Optional<User> findUser(String query, String identifier) {
         try (Connection conn = getConnection();
              PreparedStatement pstmt = conn.prepareStatement(query)) {
@@ -75,41 +108,34 @@ public class JdbcUserRepository implements UserRepository {
                     if (lockoutUntilTimestamp != null) {
                         user.setLockoutUntil(lockoutUntilTimestamp.toInstant());
                     }
+                    try { // Robust retrieval of last_login
+                        Timestamp lastLoginTimestamp = rs.getTimestamp("last_login");
+                        if (lastLoginTimestamp != null) {
+                            user.setLastLogin(lastLoginTimestamp.toInstant());
+                        }
+                    } catch (SQLException sqle) {
+                        LOGGER.log(Level.WARNING, "Column 'last_login' not found or invalid in ResultSet. This might indicate a schema mismatch. Error: " + sqle.getMessage());
+                        user.setLastLogin(null); // Default to null if column is missing
+                    }
                     return Optional.of(user);
                 }
             }
         } catch (SQLException e) {
-            System.err.println("Error finding user by identifier: " + e.getMessage());
+            LOGGER.log(Level.SEVERE, "Error finding user by identifier: " + e.getMessage(), e); // Log full stack trace
         }
         return Optional.empty();
     }
 
     @Override
     public Optional<User> findByUsername(String username) {
-        String sql = "SELECT id, username, email, password_hash, salt, full_name, failed_attempts, lockout_until FROM users WHERE username = ?";
+        String sql = "SELECT id, username, email, password_hash, salt, full_name, failed_attempts, lockout_until, last_login FROM users WHERE username = ? COLLATE Latin1_General_CI_AS";
         return findUser(sql, username);
     }
 
     @Override
     public Optional<User> findByEmail(String email) {
-        String sql = "SELECT id, username, email, password_hash, salt, full_name, failed_attempts, lockout_until FROM users WHERE email = ?";
+        String sql = "SELECT id, username, email, password_hash, salt, full_name, failed_attempts, lockout_until, last_login FROM users WHERE email = ? COLLATE Latin1_General_CI_AS";
         return findUser(sql, email);
-    }
-
-    private void updateUserAttemptsAndLockout(String sql, String identifier) {
-        try (Connection conn = getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            if (sql.contains("lockout_until = ?")) { // For lockAccount
-                Timestamp lockoutTime = Timestamp.from(Instant.now().plusSeconds(30 * 60)); // Lock for 30 minutes
-                pstmt.setTimestamp(1, lockoutTime);
-                pstmt.setString(2, identifier);
-            } else {
-                pstmt.setString(1, identifier);
-            }
-            pstmt.executeUpdate();
-        } catch (SQLException e) {
-            System.err.println("Error updating user attempts/lockout for identifier " + identifier + ": " + e.getMessage());
-        }
     }
 
     @Override
@@ -127,11 +153,12 @@ public class JdbcUserRepository implements UserRepository {
 
     @Override
     public void resetFailedAttempts(String identifier) {
-        String sql = "UPDATE users SET failed_attempts = 0, lockout_until = NULL WHERE username = ? OR email = ?";
+        String sql = "UPDATE users SET failed_attempts = 0, lockout_until = NULL, last_login = ? WHERE username = ? OR email = ?";
         try (Connection conn = getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setString(1, identifier);
+            pstmt.setTimestamp(1, Timestamp.from(Instant.now())); // Set current time for last_login on successful reset
             pstmt.setString(2, identifier);
+            pstmt.setString(3, identifier);
             pstmt.executeUpdate();
         } catch (SQLException e) {
             System.err.println("Error resetting failed attempts for user " + identifier + ": " + e.getMessage());

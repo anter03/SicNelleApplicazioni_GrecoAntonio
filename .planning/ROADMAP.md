@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 1: Secure Platform Foundation** - Establish the fundamental secure infrastructure for the application.
 - [ ] **Phase 2: Secure User Authentication & Session Management** - Enable secure user registration, login, and session handling.
 - [ ] **Phase 3: Secure Content & File Handling** - Implement secure upload and management of textual content, protected against injection and XSS.
-- [ ] **Phase 4: Implement additional security features** - Further enhance the application's security posture.
+- [x] **Phase 4: Colmare le lacune funzionali che rappresentano vulnerabilità critiche** - Risolvere le vulnerabilità critiche nell'autenticazione, nell'autorizzazione e nella gestione delle sessioni.
 
 ## Phase Details
 
@@ -54,13 +54,16 @@ Decimal phases appear between their surrounding integers in numeric order.
   5. Attempts to upload files with non-`.txt` extensions or incorrect MIME types are rejected with an appropriate error message.
 **Plans**: TBD
 
-### Phase 4: Implement additional security features
-**Goal**: Further enhance the application's security posture.
+### Phase 4: Colmare le lacune funzionali che rappresentano vulnerabilità critiche
+**Goal**: Risolvere le vulnerabilità critiche nell'autenticazione, nell'autorizzazione e nella gestione delle sessioni, basandosi sulle lacune funzionali identificate.
 **Depends on**: Phase 3
-**Requirements**: TBD
+**Requirements**: RF1, RF3, TA6, RF6, RF7 (from user prompt)
 **Success Criteria** (what must be TRUE):
-  1. TBD
-**Plans**: TBD
+  1. Il sistema controlla l'unicità di email e username durante la registrazione, restituendo un errore generico in caso di duplicati.
+  2. L'accesso alle risorse protette (es. Home, lista file) richiede autenticazione.
+  3. La Home page mostra solo i file dell'utente autenticato, con prevenzione XSS.
+  4. La funzionalità di logout invalida la sessione e cancella i cookie.
+**Plans**: 04-PLAN.md (generated)
 
 ## Progress
 
@@ -68,5 +71,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 |-------|--------|
 | 1     | Completed |
 | 2     | Completed |
-| 3     | Pending |
-| 4     | Pending |
+| 3     | Completed |
+| 4     | Completed |
+
+

@@ -34,7 +34,8 @@ label {
 }
 
 input[type="text"],
-input[type="password"] {
+input[type="password"],
+input[type="email"] { /* Added email type */
     width: 100%;
     padding: 10px;
     margin-bottom: 15px;
@@ -67,4 +68,40 @@ p.error-message {
 p.success-message {
     color: green;
     margin-top: 15px;
+}
+
+/* Styles for Home Page Content Table */
+.container {
+    background-color: #fff;
+    padding: 20px 30px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    width: 80%; /* Adjust width as needed */
+    max-width: 900px; /* Max width for larger screens */
+    margin: 20px auto; /* Center the container */
+    text-align: left;
+}
+
+.content-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+.content-table th, .content-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+
+.content-table th {
+    background-color: #f2f2f2;
+}
+
+.content-table tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+.content-table tr:hover {
+    background-color: #f1f1f1;
 }
