@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.logging.Logger;
 import java.util.logging.Level;
 
-@WebServlet("/home")
+//@WebServlet("/home")
 public class DisplayContentServlet extends HttpServlet {
 
     private static final Logger LOGGER = Logger.getLogger(DisplayContentServlet.class.getName());

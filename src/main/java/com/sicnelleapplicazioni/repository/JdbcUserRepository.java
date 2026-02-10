@@ -12,16 +12,19 @@ public class JdbcUserRepository implements UserRepository {
 
     private static final Logger LOGGER = Logger.getLogger(JdbcUserRepository.class.getName()); // Add Logger
 
-    // private static final String DB_URL = "jdbc:sqlserver://;serverName=localhost\\SQLEXPRESS;databaseName=sicurezzaNelleApplicazioni;trustServerCertificate=true";
-    private static final String DB_URL = "jdbc:mysql://localhost:3306/sic_db?useSSL=false&allowPublicKeyRetrieval=true";
-    // private static final String DB_USER = "sa";
-    private static final String DB_USER = "root";
-    // private static final String DB_PASSWORD = "SqlServerMio160625";
-    private static final String DB_PASSWORD = "root_password";
+     private static final String DB_URL = "jdbc:sqlserver://;serverName=localhost\\SQLEXPRESS;databaseName=sicurezzaNelleApplicazioni;trustServerCertificate=true";
+     private static final String DB_USER = "sa";
+     private static final String DB_PASSWORD = "SqlServerMio160625";
+    //private static final String DB_PASSWORD = "root_password";
+    //private static final String DB_URL = "jdbc:mysql://localhost:3306/sic_db?useSSL=false&allowPublicKeyRetrieval=true";
+    //private static final String DB_USER = "root";
 
     private Connection getConnection() throws SQLException {
         try {
-            Class.forName("com.mysql.cj.jdbc.Driver");
+           // Class.forName("com.mysql.cj.jdbc.Driver");
+            Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
+
+
         } catch (ClassNotFoundException e) {
             // throw new SQLException("SQL Server JDBC Driver not found", e);
             throw new SQLException("MySQL JDBC Driver not found", e);

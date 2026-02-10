@@ -75,17 +75,15 @@
         <servlet-name>FileUploadServlet</servlet-name>
         <servlet-class>com.sicnelleapplicazioni.servlet.FileUploadServlet</servlet-class>
         <multipart-config>
-            <location>/tmp</location>
-            <max-file-size>10485760</max-file-size> <!-- 10 MB -->
-            <max-request-size>20971520</max-request-size> <!-- 20 MB -->
-            <file-size-threshold>0</file-size-threshold>
+            <location>C:\Windows\Temp</location>
+            <max-file-size>10485760</max-file-size>       <max-request-size>20971520</max-request-size> <file-size-threshold>0</file-size-threshold>
         </multipart-config>
     </servlet>
+
     <servlet-mapping>
         <servlet-name>FileUploadServlet</servlet-name>
         <url-pattern>/upload</url-pattern>
     </servlet-mapping>
-
     <servlet>
         <servlet-name>DisplayContentServlet</servlet-name>
         <servlet-class>com.sicnelleapplicazioni.servlet.DisplayContentServlet</servlet-class>
