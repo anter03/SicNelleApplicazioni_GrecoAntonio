@@ -37,7 +37,7 @@ public class SessionControlFilterTest {
     @Test
     void testDoFilter_UserLoggedIn() throws IOException, ServletException {
         when(mockRequest.getSession(false)).thenReturn(mockSession);
-        when(mockSession.getAttribute("user")).thenReturn(new Object()); // Simulate logged-in user
+        when(mockSession.getAttribute("userId")).thenReturn(123L); // Simulate logged-in user
 
         sessionControlFilter.doFilter(mockRequest, mockResponse, mockFilterChain);
 
@@ -59,7 +59,7 @@ public class SessionControlFilterTest {
     @Test
     void testDoFilter_UserNotLoggedIn_SessionExistsButNoUserAttribute() throws IOException, ServletException {
         when(mockRequest.getSession(false)).thenReturn(mockSession);
-        when(mockSession.getAttribute("user")).thenReturn(null); // Simulate session exists but no user
+        when(mockSession.getAttribute("userId")).thenReturn(null); // Simulate session exists but no user
         when(mockRequest.getContextPath()).thenReturn("/my-app");
 
         sessionControlFilter.doFilter(mockRequest, mockResponse, mockFilterChain);

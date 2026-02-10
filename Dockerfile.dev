@@ -1,0 +1,29 @@
+FROM maven:3.9.6-eclipse-temurin-17-focal
+
+# 1. Installazione Node.js, NPM e Git
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y nodejs git curl gnupg
+
+# 2. Installazione tool globali (Corretto con i nomi ufficiali)
+# Usiamo @google/gemini-cli e installiamo globalmente get-shit-done-cc
+RUN npm install -g @google/gemini-cli get-shit-done-cc@latest
+
+# 3. Installazione Google Cloud SDK per l'autenticazione browser
+# RUN echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] http://packages.cloud.google.com/apt cloud-sdk main" | \
+#     tee -a /etc/apt/sources.list.d/google-cloud-sdk.list && \
+#     curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | \
+#     apt-key --keyring /usr/share/keyrings/cloud.google.gpg add - && \
+#     apt-get update && apt-get install -y google-cloud-cli
+
+# 4. Installazione Tomcat 9
+ENV CATALINA_HOME /opt/tomcat
+RUN mkdir -p $CATALINA_HOME && \
+    curl -O https://archive.apache.org/dist/tomcat/tomcat-9/v9.0.85/bin/apache-tomcat-9.0.85.tar.gz && \
+    tar xzvf apache-tomcat-9.0.85.tar.gz -C $CATALINA_HOME --strip-components=1
+
+# 5. Cartella di upload sicura (Requisito TA8)
+RUN mkdir -p /app/safe_uploads
+
+WORKDIR /app
+EXPOSE 8080
+CMD ["bash"]

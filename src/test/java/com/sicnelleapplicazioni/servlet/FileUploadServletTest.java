@@ -86,8 +86,8 @@ public class FileUploadServletTest {
         fileUploadServlet.doPost(request, response);
 
         verify(contentRepository, times(1)).save(any());
-        verify(session, times(1)).setAttribute(eq("successMessage"), contains("uploaded successfully"));
-        verify(response, times(1)).sendRedirect(eq(MOCKED_CONTEXT_PATH + "/upload.jsp"));
+        verify(request, times(1)).setAttribute(eq("message"), contains("uploaded successfully and content saved!"));
+        verify(requestDispatcher, times(1)).forward(request, response);
     }
 
     @Test
@@ -100,8 +100,8 @@ public class FileUploadServletTest {
 
         fileUploadServlet.doPost(request, response);
 
-        verify(session, times(1)).setAttribute(eq("errorMessage"), eq("Only .txt files are allowed for upload."));
-        verify(response, times(1)).sendRedirect(eq(MOCKED_CONTEXT_PATH + "/upload.jsp"));
+        verify(request, times(1)).setAttribute(eq("message"), eq("Only .txt files are allowed for upload."));
+        verify(requestDispatcher, times(1)).forward(request, response);
         verify(tika, never()).detect(any(java.io.File.class));
         verify(contentRepository, never()).save(any());
     }
@@ -117,8 +117,8 @@ public class FileUploadServletTest {
 
         fileUploadServlet.doPost(request, response);
 
-        verify(session, times(1)).setAttribute(eq("errorMessage"), eq("Invalid file content type. Only plain text files are allowed."));
-        verify(response, times(1)).sendRedirect(eq(MOCKED_CONTEXT_PATH + "/upload.jsp"));
+        verify(request, times(1)).setAttribute(eq("message"), eq("Invalid file content type. Only plain text files are allowed."));
+        verify(requestDispatcher, times(1)).forward(request, response);
         verify(tika, times(1)).detect(any(java.io.File.class));
         verify(contentRepository, never()).save(any());
     }
@@ -130,6 +130,7 @@ public class FileUploadServletTest {
         when(filePart.getSubmittedFileName()).thenReturn("test.txt");
         when(filePart.getInputStream()).thenReturn(new ByteArrayInputStream(fileContent.getBytes()));
         when(session.getAttribute("userId")).thenReturn(null);
+        when(tika.detect(any(java.io.File.class))).thenReturn("text/plain");
 
         fileUploadServlet.doPost(request, response);
 

@@ -17,7 +17,7 @@ public class SessionControlFilter implements Filter {
         HttpServletResponse httpResponse = (HttpServletResponse) response;
         HttpSession session = httpRequest.getSession(false); // Do not create a session if it doesn't exist
 
-        if (session == null || session.getAttribute("user") == null) {
+        if (session == null || session.getAttribute("userId") == null) {
             httpResponse.sendRedirect(httpRequest.getContextPath() + "/login");
         } else {
             chain.doFilter(request, response);

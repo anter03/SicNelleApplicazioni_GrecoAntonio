@@ -12,15 +12,19 @@ public class JdbcUserRepository implements UserRepository {
 
     private static final Logger LOGGER = Logger.getLogger(JdbcUserRepository.class.getName()); // Add Logger
 
-    private static final String DB_URL = "jdbc:sqlserver://;serverName=localhost\\SQLEXPRESS;databaseName=sicurezzaNelleApplicazioni;trustServerCertificate=true";
-    private static final String DB_USER = "sa";
-    private static final String DB_PASSWORD = "SqlServerMio160625";
+    // private static final String DB_URL = "jdbc:sqlserver://;serverName=localhost\\SQLEXPRESS;databaseName=sicurezzaNelleApplicazioni;trustServerCertificate=true";
+    private static final String DB_URL = "jdbc:mysql://localhost:3306/sic_db?useSSL=false&allowPublicKeyRetrieval=true";
+    // private static final String DB_USER = "sa";
+    private static final String DB_USER = "root";
+    // private static final String DB_PASSWORD = "SqlServerMio160625";
+    private static final String DB_PASSWORD = "root_password";
 
     private Connection getConnection() throws SQLException {
         try {
-            Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
+            Class.forName("com.mysql.cj.jdbc.Driver");
         } catch (ClassNotFoundException e) {
-            throw new SQLException("SQL Server JDBC Driver not found", e);
+            // throw new SQLException("SQL Server JDBC Driver not found", e);
+            throw new SQLException("MySQL JDBC Driver not found", e);
         }
         return DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
     }
@@ -128,13 +132,13 @@ public class JdbcUserRepository implements UserRepository {
 
     @Override
     public Optional<User> findByUsername(String username) {
-        String sql = "SELECT id, username, email, password_hash, salt, full_name, failed_attempts, lockout_until, last_login FROM users WHERE username = ? COLLATE Latin1_General_CI_AS";
+        String sql = "SELECT id, username, email, password_hash, salt, full_name, failed_attempts, lockout_until, last_login FROM users WHERE username = ?";
         return findUser(sql, username);
     }
 
     @Override
     public Optional<User> findByEmail(String email) {
-        String sql = "SELECT id, username, email, password_hash, salt, full_name, failed_attempts, lockout_until, last_login FROM users WHERE email = ? COLLATE Latin1_General_CI_AS";
+        String sql = "SELECT id, username, email, password_hash, salt, full_name, failed_attempts, lockout_until, last_login FROM users WHERE email = ?";
         return findUser(sql, email);
     }
 
