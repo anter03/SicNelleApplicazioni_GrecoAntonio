@@ -7,9 +7,15 @@
 </head>
 <body>
     <div class="container">
-        <h1>Welcome, <c:out value="${sessionScope.username != null ? sessionScope.username : sessionScope.email}" />!</h1>
+        <h1>Benvenuto, <c:out value="${sessionScope.username != null ? sessionScope.username : sessionScope.email}" />!</h1>
 
-        <p><a href="${pageContext.request.contextPath}/logout">Logout</a></p>
+        <div class="nav-links">
+            <p>
+                <a href="${pageContext.request.contextPath}/upload.jsp" class="upload-link button">Carica i tuoi file</a>
+                | 
+                <a href="${pageContext.request.contextPath}/logout">Esci</a>
+            </p>
+        </div>
 
         <c:if test="${not empty sessionScope.successMessage}">
             <p class="success-message"><c:out value="${sessionScope.successMessage}" /></p>
@@ -20,30 +26,34 @@
             <c:remove var="errorMessage" scope="request" />
         </c:if>
 
-        <h2>Your Uploaded Files</h2>
+        <h2>I tuoi file caricati</h2>
 
         <c:choose>
-            <c:when test="${not empty requestScope.contents}">
+            <c:when test="${not empty requestScope.userContents}">
                 <table class="content-table">
                     <thead>
                         <tr>
-                            <th>File Name</th>
-                            <th>Type</th>
-                            <th>Upload Time</th>
-                            <th>Actions</th>
+                            <th>Nome File</th>
+                            <th>Autore</th>
+                            <th>Tipo</th>
+                            <th>Data di Caricamento</th>
+                            <th>Azioni</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <c:forEach var="content" items="${requestScope.contents}">
+                        <c:forEach var="content" items="${requestScope.userContents}">
                             <tr>
                                 <td><c:out value="${content.originalName}" /></td>
+                                <td><c:out value="${content.authorUsername}" /></td>
                                 <td><c:out value="${content.mimeType}" /></td>
                                 <td><c:out value="${content.createdAt}" /></td>
                                 <td>
-                                    <!-- Action Links (Placeholders) -->
-                                    <a href="#">View</a> |
-                                    <a href="#">Download</a> |
-                                    <a href="#">Delete</a>
+                                    <a href="${pageContext.request.contextPath}/viewContent?id=${content.id}">Visualizza</a> |
+                                    <a href="${pageContext.request.contextPath}/download?id=${content.id}">Scarica</a> |
+                                    <form action="${pageContext.request.contextPath}/delete" method="post" style="display:inline;" onsubmit="return confirm('Sei sicuro di voler eliminare questo file?');">
+                                        <input type="hidden" name="id" value="${content.id}">
+                                        <button type="submit" class="link-button">Elimina</button>
+                                    </form>
                                 </td>
                             </tr>
                         </c:forEach>
@@ -51,7 +61,41 @@
                 </table>
             </c:when>
             <c:otherwise>
-                <p>You have not uploaded any files yet.</p>
+                <p>Non hai ancora caricato alcun file.</p>
+            </c:otherwise>
+        </c:choose>
+
+        <h2>File caricati da altri utenti</h2>
+
+        <c:choose>
+            <c:when test="${not empty requestScope.otherUsersContents}">
+                <table class="content-table">
+                    <thead>
+                        <tr>
+                            <th>Nome File</th>
+                            <th>Autore</th>
+                            <th>Tipo</th>
+                            <th>Data di Caricamento</th>
+                            <th>Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <c:forEach var="content" items="${requestScope.otherUsersContents}">
+                            <tr>
+                                <td><c:out value="${content.originalName}" /></td>
+                                <td><c:out value="${content.authorUsername}" /></td>
+                                <td><c:out value="${content.mimeType}" /></td>
+                                <td><c:out value="${content.createdAt}" /></td>
+                                <td>
+                                    <a href="${pageContext.request.contextPath}/viewContent?id=${content.id}">Visualizza</a>
+                                </td>
+                            </tr>
+                        </c:forEach>
+                    </tbody>
+                </table>
+            </c:when>
+            <c:otherwise>
+                <p>Nessun file caricato da altri utenti.</p>
             </c:otherwise>
         </c:choose>
     </div>

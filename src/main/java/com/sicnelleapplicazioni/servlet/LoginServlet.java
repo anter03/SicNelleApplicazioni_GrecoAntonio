@@ -61,7 +61,7 @@ public class LoginServlet extends HttpServlet {
                 session.setAttribute("email", user.getEmail()); // Store email
                 session.setAttribute("username", user.getUsername()); // Store username (for display/legacy if needed)
                 session.setAttribute("successMessage", "Login successful!");
-                resp.sendRedirect(req.getContextPath() + "/home.jsp"); // Redirect to a home page
+                resp.sendRedirect(req.getContextPath() + "/home"); // Redirect to a home page
             } else {
                 // This case should ideally not be reached if authentication was successful
                 session.setAttribute("errorMessage", "An unexpected error occurred during login. Please try again.");

@@ -29,7 +29,7 @@ public class JdbcContentRepository implements ContentRepository {
     }
 
     @Override
-    public void save(Content content) { // Return type changed to void
+    public synchronized void save(Content content) { // Return type changed to void
         String sql = "INSERT INTO contents (id, user_id, original_name, internal_name, mime_type, file_size, file_path, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -56,8 +56,9 @@ public class JdbcContentRepository implements ContentRepository {
     }
 
     @Override
-    public Optional<Content> findById(UUID id) { // Parameter type changed to UUID
-        String sql = "SELECT id, user_id, original_name, internal_name, mime_type, file_size, file_path, created_at FROM contents WHERE id = ?";
+    public synchronized Optional<Content> findById(UUID id) { // Parameter type changed to UUID
+        String sql = "SELECT c.id, c.user_id, c.original_name, c.internal_name, c.mime_type, c.file_size, c.file_path, c.created_at, u.username " +
+                     "FROM contents c JOIN users u ON c.user_id = u.id WHERE c.id = ?";
         try (Connection conn = getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, id.toString()); // Set UUID as String
@@ -74,8 +75,9 @@ public class JdbcContentRepository implements ContentRepository {
     }
 
     @Override
-    public Optional<Content> findByInternalName(String internalName) { // Renamed method
-        String sql = "SELECT id, user_id, original_name, internal_name, mime_type, file_size, file_path, created_at FROM contents WHERE internal_name = ?";
+    public synchronized Optional<Content> findByInternalName(String internalName) { // Renamed method
+        String sql = "SELECT c.id, c.user_id, c.original_name, c.internal_name, c.mime_type, c.file_size, c.file_path, c.created_at, u.username " +
+                     "FROM contents c JOIN users u ON c.user_id = u.id WHERE c.internal_name = ?";
         try (Connection conn = getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, internalName);
@@ -92,8 +94,9 @@ public class JdbcContentRepository implements ContentRepository {
     }
 
     @Override
-    public List<Content> findByUserId(Long userId) { // Parameter type changed to Long
-        String sql = "SELECT id, user_id, original_name, internal_name, mime_type, file_size, file_path, created_at FROM contents WHERE user_id = ? ORDER BY created_at DESC";
+    public synchronized List<Content> findByUserId(Long userId) { // Parameter type changed to Long
+        String sql = "SELECT c.id, c.user_id, c.original_name, c.internal_name, c.mime_type, c.file_size, c.file_path, c.created_at, u.username " +
+                     "FROM contents c JOIN users u ON c.user_id = u.id WHERE c.user_id = ? ORDER BY c.created_at DESC";
         List<Content> contentList = new ArrayList<>();
         try (Connection conn = getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -111,8 +114,9 @@ public class JdbcContentRepository implements ContentRepository {
     }
 
     @Override
-    public List<Content> findAll() {
-        String sql = "SELECT id, user_id, original_name, internal_name, mime_type, file_size, file_path, created_at FROM contents ORDER BY created_at DESC";
+    public synchronized List<Content> findAll() {
+        String sql = "SELECT c.id, c.user_id, c.original_name, c.internal_name, c.mime_type, c.file_size, c.file_path, c.created_at, u.username " +
+                     "FROM contents c JOIN users u ON c.user_id = u.id ORDER BY c.created_at DESC";
         List<Content> contentList = new ArrayList<>();
         try (Connection conn = getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql);
@@ -128,7 +132,7 @@ public class JdbcContentRepository implements ContentRepository {
     }
 
     @Override
-    public void delete(UUID id) { // Renamed method, changed parameter type
+    public synchronized void delete(UUID id) { // Renamed method, changed parameter type
         String sql = "DELETE FROM contents WHERE id = ?";
         try (Connection conn = getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -150,6 +154,9 @@ public class JdbcContentRepository implements ContentRepository {
         content.setSize(rs.getLong("file_size"));
         content.setFilePath(rs.getString("file_path"));
         content.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
+        if (rs.getMetaData().getColumnCount() > 8) { // If username is present in the result set
+            content.setAuthorUsername(rs.getString("username"));
+        }
         return content;
     }
 }

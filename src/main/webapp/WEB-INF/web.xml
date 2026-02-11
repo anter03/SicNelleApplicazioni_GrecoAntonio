@@ -102,6 +102,44 @@
         <url-pattern>/logout</url-pattern>
     </servlet-mapping>
 
+    <servlet>
+        <servlet-name>HomeServlet</servlet-name>
+        <servlet-class>com.sicnelleapplicazioni.servlet.HomeServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>HomeServlet</servlet-name>
+        <url-pattern>/home</url-pattern>
+    </servlet-mapping>
+
+    <servlet>
+        <servlet-name>ViewContentServlet</servlet-name>
+        <servlet-class>com.sicnelleapplicazioni.servlet.ViewContentServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>ViewContentServlet</servlet-name>
+        <url-pattern>/viewContent</url-pattern>
+    </servlet-mapping>
+
+    <servlet>
+        <servlet-name>DownloadServlet</servlet-name>
+        <servlet-class>com.sicnelleapplicazioni.servlet.DownloadServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>DownloadServlet</servlet-name>
+        <url-pattern>/download</url-pattern>
+    </servlet-mapping>
+
+    <servlet>
+        <servlet-name>DeleteServlet</servlet-name>
+        <servlet-class>com.sicnelleapplicazioni.servlet.DeleteServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>DeleteServlet</servlet-name>
+        <url-pattern>/delete</url-pattern>
+    </servlet-mapping>
+
+    
+
     <error-page>
         <error-code>404</error-code>
         <location>/error404.jsp</location>

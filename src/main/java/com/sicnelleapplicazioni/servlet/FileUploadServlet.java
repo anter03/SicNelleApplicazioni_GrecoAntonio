@@ -69,77 +69,86 @@ public class FileUploadServlet extends HttpServlet {
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        String message;
-        Path tempFilePath = null; // Usato solo se decidiamo di salvare un temp file noi, ma qui andiamo diretti
+        // Synchronize on the servlet instance to handle one upload at a time.
+        // This is a simple way to prevent race conditions on the file system and database.
+        synchronized (this) {
+            String message;
+            Path tempFilePath = null; // Usato solo se decidiamo di salvare un temp file noi, ma qui andiamo diretti
 
-        try {
-            // Ora getPart non dovrebbe esplodere grazie al fix in init()
-            Part filePart = req.getPart("file");
+            try {
+                // Ora getPart non dovrebbe esplodere grazie al fix in init()
+                Part filePart = req.getPart("file");
 
-            if (filePart == null || filePart.getSubmittedFileName() == null || filePart.getSize() == 0) {
-                showError(req, resp, "Nessun file selezionato o file vuoto.");
-                return;
+                if (filePart == null || filePart.getSubmittedFileName() == null || filePart.getSize() == 0) {
+                    showError(req, resp, "Nessun file selezionato o file vuoto.");
+                    return;
+                }
+
+                String originalFileName = Paths.get(filePart.getSubmittedFileName()).getFileName().toString();
+
+                // 1. Validazione estensione (veloce, ma non sicura)
+                if (!originalFileName.toLowerCase().endsWith(".txt")) {
+                    showError(req, resp, "Solo i file .txt sono permessi (controllo estensione).");
+                    return;
+                }
+
+                // 2. Preparazione destinazione finale
+                String internalFileName = UUID.randomUUID().toString() + ".txt";
+                Path finalDestination = Paths.get(TARGET_STORAGE_PATH, internalFileName);
+
+                // 3. Copia dello stream direttamente nella destinazione finale
+                // Nota: Se il controllo Tika fallisce dopo, cancelleremo questo file.
+                try (InputStream inputStream = filePart.getInputStream()) {
+                    Files.copy(inputStream, finalDestination, StandardCopyOption.REPLACE_EXISTING);
+                }
+
+                // 4. Validazione MIME Type REALE con Tika (sul file appena salvato)
+                String detectedMimeType = tika.detect(finalDestination.toFile());
+
+                if (!MediaType.TEXT_PLAIN.toString().equals(detectedMimeType)) {
+                    // Il file è bugiardo: ha estensione .txt ma dentro non lo è. Cancelliamo tutto.
+                    Files.deleteIfExists(finalDestination);
+                    showError(req, resp, "Contenuto del file non valido. Accettiamo solo puro testo (text/plain).");
+                    return;
+                }
+
+                // 5. Recupero utente
+                Long userId = (Long) req.getSession().getAttribute("userId");
+                if (userId == null) {
+                    Files.deleteIfExists(finalDestination); // Pulizia
+                    resp.sendRedirect(req.getContextPath() + "/login.jsp");
+                    return;
+                }
+
+                // 6. Salvataggio su DB
+                Content content = new Content();
+                content.setUserId(userId);
+                content.setOriginalName(originalFileName);
+                content.setInternalName(internalFileName);
+                content.setMimeType(detectedMimeType);
+                content.setSize(Files.size(finalDestination));
+                content.setFilePath(finalDestination.toString());
+
+                contentRepository.save(content);
+
+                // Successo
+                req.setAttribute("successMessage", "file caricato con successo");
+                req.getRequestDispatcher("/upload.jsp").forward(req, resp);
+
+            } catch (Exception e) {
+                handleError(req, resp, e);
             }
-
-            String originalFileName = Paths.get(filePart.getSubmittedFileName()).getFileName().toString();
-
-            // 1. Validazione estensione (veloce, ma non sicura)
-            if (!originalFileName.toLowerCase().endsWith(".txt")) {
-                showError(req, resp, "Solo i file .txt sono permessi (controllo estensione).");
-                return;
-            }
-
-            // 2. Preparazione destinazione finale
-            String internalFileName = UUID.randomUUID().toString() + ".txt";
-            Path finalDestination = Paths.get(TARGET_STORAGE_PATH, internalFileName);
-
-            // 3. Copia dello stream direttamente nella destinazione finale
-            // Nota: Se il controllo Tika fallisce dopo, cancelleremo questo file.
-            try (InputStream inputStream = filePart.getInputStream()) {
-                Files.copy(inputStream, finalDestination, StandardCopyOption.REPLACE_EXISTING);
-            }
-
-            // 4. Validazione MIME Type REALE con Tika (sul file appena salvato)
-            String detectedMimeType = tika.detect(finalDestination.toFile());
-
-            if (!MediaType.TEXT_PLAIN.toString().equals(detectedMimeType)) {
-                // Il file è bugiardo: ha estensione .txt ma dentro non lo è. Cancelliamo tutto.
-                Files.deleteIfExists(finalDestination);
-                showError(req, resp, "Contenuto del file non valido. Accettiamo solo puro testo (text/plain).");
-                return;
-            }
-
-            // 5. Recupero utente
-            Long userId = (Long) req.getSession().getAttribute("userId");
-            if (userId == null) {
-                Files.deleteIfExists(finalDestination); // Pulizia
-                resp.sendRedirect(req.getContextPath() + "/login.jsp");
-                return;
-            }
-
-            // 6. Salvataggio su DB
-            Content content = new Content();
-            content.setUserId(userId);
-            content.setOriginalName(originalFileName);
-            content.setInternalName(internalFileName);
-            content.setMimeType(detectedMimeType);
-            content.setSize(Files.size(finalDestination));
-            content.setFilePath(finalDestination.toString());
-
-            contentRepository.save(content);
-
-            // Successo
-            message = "File '" + originalFileName + "' caricato con successo!";
-            req.setAttribute("message", message);
-            req.getRequestDispatcher("/upload.jsp").forward(req, resp);
-
-        } catch (Exception e) {
-            handleError(req, resp, e);
         }
     }
 
     private void showError(HttpServletRequest req, HttpServletResponse resp, String msg) throws ServletException, IOException {
-        req.setAttribute("message", msg);
+        // For specific, safe-to-display errors, we show them.
+        // For generic ones, we use a standard message.
+        if (msg.contains("Contenuto del file non valido")) {
+            req.setAttribute("errorMessage", "Contenuto del file non valido. Accettiamo solo puro testo (text/plain).");
+        } else {
+            req.setAttribute("errorMessage", "caricamento file fallito");
+        }
         req.getRequestDispatcher("/upload.jsp").forward(req, resp);
     }
 
@@ -151,7 +160,7 @@ public class FileUploadServlet extends HttpServlet {
 
         LOGGER.log(java.util.logging.Level.SEVERE, "Upload error - User: " + userId + ", IP: " + ipAddress, e);
 
-        req.setAttribute("message", "Errore critico nel caricamento del file: " + e.getMessage());
+        req.setAttribute("errorMessage", "caricamento file fallito");
         req.getRequestDispatcher("/upload.jsp").forward(req, resp);
     }
 }

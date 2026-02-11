@@ -13,13 +13,14 @@ public class Content {
     private String filePath;
     private LocalDateTime createdAt;
     private String contentText; // Re-introduced for display purposes
+    private String authorUsername;
 
     public Content() {
         this.id = UUID.randomUUID();
         this.createdAt = LocalDateTime.now();
     }
 
-    public Content(UUID id, Long userId, String originalName, String internalName, String mimeType, long size, String filePath, LocalDateTime createdAt, String contentText) {
+    public Content(UUID id, Long userId, String originalName, String internalName, String mimeType, long size, String filePath, LocalDateTime createdAt, String contentText, String authorUsername) {
         this.id = id;
         this.userId = userId;
         this.originalName = originalName;
@@ -29,11 +30,21 @@ public class Content {
         this.filePath = filePath;
         this.createdAt = createdAt;
         this.contentText = contentText;
+        this.authorUsername = authorUsername;
+    }
+
+    public String getAuthorUsername() {
+        return authorUsername;
+    }
+
+    public void setAuthorUsername(String authorUsername) {
+        this.authorUsername = authorUsername;
     }
 
     public UUID getId() {
         return id;
     }
+
 
     public void setId(UUID id) {
         this.id = id;

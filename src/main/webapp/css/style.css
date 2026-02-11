@@ -105,3 +105,41 @@ p.success-message {
 .content-table tr:hover {
     background-color: #f1f1f1;
 }
+
+/* Styles for View Content Page */
+.back-link {
+    display: inline-block;
+    margin-bottom: 20px;
+    text-decoration: none;
+    color: #007bff;
+}
+
+.back-link:hover {
+    text-decoration: underline;
+}
+
+.content-view {
+    background-color: #fdfdfd;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 15px;
+    white-space: pre-wrap; /* Ensures long lines wrap */
+    word-wrap: break-word; /* Breaks long words if necessary */
+    max-height: 60vh; /* Limit height and make it scrollable */
+    overflow-y: auto; /* Add vertical scrollbar */
+    font-family: monospace; /* Use a monospaced font for code/text */
+}
+
+.link-button {
+    background: none;
+    border: none;
+    color: #007bff;
+    text-decoration: underline;
+    cursor: pointer;
+    padding: 0;
+    font: inherit;
+}
+
+.feedback-message {
+    text-align: center;
+}

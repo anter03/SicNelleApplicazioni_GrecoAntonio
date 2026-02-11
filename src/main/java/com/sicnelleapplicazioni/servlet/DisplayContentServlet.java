@@ -48,9 +48,9 @@ public class DisplayContentServlet extends HttpServlet {
         HttpSession session = req.getSession(false);
 
         if (session != null && session.getAttribute("userId") != null) {
-            Long userId = (Long) session.getAttribute("userId");
             try {
-                contents = contentRepository.findByUserId(userId);
+                // RF6: Show content from all users
+                contents = contentRepository.findAll();
 
                 for (Content content : contents) {
                     // Use content.getFilePath() which is the absolute path where the file is stored
@@ -65,9 +65,10 @@ public class DisplayContentServlet extends HttpServlet {
                 }
             } catch (Exception e) {
                 String ipAddress = req.getRemoteAddr();
+                Long userId = (Long) session.getAttribute("userId"); // get user id for logging
                 LOGGER.log(Level.SEVERE,
                            String.format("Error retrieving content for User ID: %s, IP: %s, Error: %s",
-                                         userId.toString(), ipAddress, e.getMessage()), e);
+                                         (userId != null ? userId.toString() : "N/A"), ipAddress, e.getMessage()), e);
                 errorMessage = "Impossibile recuperare i contenuti. Riprova più tardi o contatta l'assistenza.";
             }
         } else {
