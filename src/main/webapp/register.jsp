@@ -23,6 +23,7 @@
 
             <input type="submit" value="Register">
         </form>
+        <p>Hai già un account? <a href="${pageContext.request.contextPath}/login">Accedi</a></p>
         <c:if test="${not empty sessionScope.errorMessage}">
             <p class="error-message"><c:out value="${sessionScope.errorMessage}" /></p>
             <c:remove var="errorMessage" scope="session" />

@@ -15,6 +15,7 @@
             <input type="password" id="password" name="password" required><br><br>
             <input type="submit" value="Login">
         </form>
+        <p>Non hai un account? <a href="${pageContext.request.contextPath}/register">Registrati</a></p>
         <c:if test="${not empty sessionScope.errorMessage}">
             <p class="error-message"><c:out value="${sessionScope.errorMessage}" /></p>
             <c:remove var="errorMessage" scope="session" />

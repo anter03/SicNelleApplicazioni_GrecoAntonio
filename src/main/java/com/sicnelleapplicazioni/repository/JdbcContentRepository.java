@@ -1,6 +1,7 @@
 package com.sicnelleapplicazioni.repository;
 
 import com.sicnelleapplicazioni.model.Content;
+import com.sicnelleapplicazioni.util.DbManager;
 
 import java.sql.*;
 import java.time.LocalDateTime;
@@ -11,27 +12,10 @@ import java.util.UUID; // Import UUID
 
 public class JdbcContentRepository implements ContentRepository {
 
-     private static final String DB_URL = "jdbc:sqlserver://;serverName=localhost\\SQLEXPRESS;databaseName=sicurezzaNelleApplicazioni;trustServerCertificate=true";
-     private static final String DB_USER = "sa";
-     private static final String DB_PASSWORD = "SqlServerMio160625";
-    //private static final String DB_PASSWORD = "root_password";
-    //private static final String DB_URL = "jdbc:mysql://localhost:3306/sic_db?useSSL=false&allowPublicKeyRetrieval=true";
-    //private static final String DB_USER = "root";
-
-    protected Connection getConnection() throws SQLException {
-        try {
-            //Class.forName("com.mysql.cj.jdbc.Driver");
-            Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-        } catch (ClassNotFoundException e) {
-            throw new SQLException("SQL Server JDBC Driver not found", e);
-        }
-        return DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
-    }
-
     @Override
     public synchronized void save(Content content) { // Return type changed to void
         String sql = "INSERT INTO contents (id, user_id, original_name, internal_name, mime_type, file_size, file_path, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-        try (Connection conn = getConnection();
+        try (Connection conn = DbManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setString(1, content.getId().toString()); // Set UUID as String
@@ -59,7 +43,7 @@ public class JdbcContentRepository implements ContentRepository {
     public synchronized Optional<Content> findById(UUID id) { // Parameter type changed to UUID
         String sql = "SELECT c.id, c.user_id, c.original_name, c.internal_name, c.mime_type, c.file_size, c.file_path, c.created_at, u.username " +
                      "FROM contents c JOIN users u ON c.user_id = u.id WHERE c.id = ?";
-        try (Connection conn = getConnection();
+        try (Connection conn = DbManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, id.toString()); // Set UUID as String
             try (ResultSet rs = pstmt.executeQuery()) {
@@ -78,7 +62,7 @@ public class JdbcContentRepository implements ContentRepository {
     public synchronized Optional<Content> findByInternalName(String internalName) { // Renamed method
         String sql = "SELECT c.id, c.user_id, c.original_name, c.internal_name, c.mime_type, c.file_size, c.file_path, c.created_at, u.username " +
                      "FROM contents c JOIN users u ON c.user_id = u.id WHERE c.internal_name = ?";
-        try (Connection conn = getConnection();
+        try (Connection conn = DbManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, internalName);
             try (ResultSet rs = pstmt.executeQuery()) {
@@ -98,7 +82,7 @@ public class JdbcContentRepository implements ContentRepository {
         String sql = "SELECT c.id, c.user_id, c.original_name, c.internal_name, c.mime_type, c.file_size, c.file_path, c.created_at, u.username " +
                      "FROM contents c JOIN users u ON c.user_id = u.id WHERE c.user_id = ? ORDER BY c.created_at DESC";
         List<Content> contentList = new ArrayList<>();
-        try (Connection conn = getConnection();
+        try (Connection conn = DbManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setLong(1, userId); // Set Long
             try (ResultSet rs = pstmt.executeQuery()) {
@@ -118,7 +102,7 @@ public class JdbcContentRepository implements ContentRepository {
         String sql = "SELECT c.id, c.user_id, c.original_name, c.internal_name, c.mime_type, c.file_size, c.file_path, c.created_at, u.username " +
                      "FROM contents c JOIN users u ON c.user_id = u.id ORDER BY c.created_at DESC";
         List<Content> contentList = new ArrayList<>();
-        try (Connection conn = getConnection();
+        try (Connection conn = DbManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql);
              ResultSet rs = pstmt.executeQuery()) {
             while (rs.next()) {
@@ -134,7 +118,7 @@ public class JdbcContentRepository implements ContentRepository {
     @Override
     public synchronized void delete(UUID id) { // Renamed method, changed parameter type
         String sql = "DELETE FROM contents WHERE id = ?";
-        try (Connection conn = getConnection();
+        try (Connection conn = DbManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, id.toString()); // Set UUID as String
             pstmt.executeUpdate();

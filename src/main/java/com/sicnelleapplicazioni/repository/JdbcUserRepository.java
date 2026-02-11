@@ -1,6 +1,7 @@
 package com.sicnelleapplicazioni.repository;
 
 import com.sicnelleapplicazioni.model.User;
+import com.sicnelleapplicazioni.util.DbManager;
 
 import java.sql.*;
 import java.time.Instant;
@@ -12,30 +13,10 @@ public class JdbcUserRepository implements UserRepository {
 
     private static final Logger LOGGER = Logger.getLogger(JdbcUserRepository.class.getName()); // Add Logger
 
-     private static final String DB_URL = "jdbc:sqlserver://;serverName=localhost\\SQLEXPRESS;databaseName=sicurezzaNelleApplicazioni;trustServerCertificate=true";
-     private static final String DB_USER = "sa";
-     private static final String DB_PASSWORD = "SqlServerMio160625";
-    //private static final String DB_PASSWORD = "root_password";
-    //private static final String DB_URL = "jdbc:mysql://localhost:3306/sic_db?useSSL=false&allowPublicKeyRetrieval=true";
-    //private static final String DB_USER = "root";
-
-    private Connection getConnection() throws SQLException {
-        try {
-           // Class.forName("com.mysql.cj.jdbc.Driver");
-            Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-
-
-        } catch (ClassNotFoundException e) {
-            // throw new SQLException("SQL Server JDBC Driver not found", e);
-            throw new SQLException("MySQL JDBC Driver not found", e);
-        }
-        return DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
-    }
-
     @Override
     public User save(User user) {
         String sql = "INSERT INTO users (username, email, password_hash, salt, full_name, failed_attempts, lockout_until) VALUES (?, ?, ?, ?, ?, ?, ?)";
-        try (Connection conn = getConnection();
+        try (Connection conn = DbManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
             pstmt.setString(1, user.getUsername());
@@ -70,7 +51,7 @@ public class JdbcUserRepository implements UserRepository {
     @Override
     public User update(User user) {
         String sql = "UPDATE users SET username = ?, email = ?, password_hash = ?, salt = ?, full_name = ?, failed_attempts = ?, lockout_until = ?, last_login = ? WHERE id = ?";
-        try (Connection conn = getConnection();
+        try (Connection conn = DbManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setString(1, user.getUsername());
@@ -97,7 +78,7 @@ public class JdbcUserRepository implements UserRepository {
     }
 
     private Optional<User> findUser(String query, String identifier) {
-        try (Connection conn = getConnection();
+        try (Connection conn = DbManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(query)) {
 
             pstmt.setString(1, identifier);
@@ -148,7 +129,7 @@ public class JdbcUserRepository implements UserRepository {
     @Override
     public void incrementFailedAttempts(String identifier) {
         String sql = "UPDATE users SET failed_attempts = failed_attempts + 1 WHERE username = ? OR email = ?";
-        try (Connection conn = getConnection();
+        try (Connection conn = DbManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, identifier);
             pstmt.setString(2, identifier);
@@ -161,7 +142,7 @@ public class JdbcUserRepository implements UserRepository {
     @Override
     public void resetFailedAttempts(String identifier) {
         String sql = "UPDATE users SET failed_attempts = 0, lockout_until = NULL, last_login = ? WHERE username = ? OR email = ?";
-        try (Connection conn = getConnection();
+        try (Connection conn = DbManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setTimestamp(1, Timestamp.from(Instant.now())); // Set current time for last_login on successful reset
             pstmt.setString(2, identifier);
@@ -175,7 +156,7 @@ public class JdbcUserRepository implements UserRepository {
     @Override
     public void lockAccount(String identifier) {
         String sql = "UPDATE users SET lockout_until = ? WHERE username = ? OR email = ?";
-        try (Connection conn = getConnection();
+        try (Connection conn = DbManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             Timestamp lockoutTime = Timestamp.from(Instant.now().plusSeconds(30 * 60)); // Lock for 30 minutes
             pstmt.setTimestamp(1, lockoutTime);
@@ -190,7 +171,7 @@ public class JdbcUserRepository implements UserRepository {
     @Override
     public void unlockAccount(String identifier) {
         String sql = "UPDATE users SET lockout_until = NULL, failed_attempts = 0 WHERE username = ? OR email = ?";
-        try (Connection conn = getConnection();
+        try (Connection conn = DbManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, identifier);
             pstmt.setString(2, identifier);
