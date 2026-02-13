@@ -4,6 +4,7 @@ import com.sicnelleapplicazioni.security.PasswordPolicyValidator;
 import com.sicnelleapplicazioni.model.User;
 import com.sicnelleapplicazioni.repository.UserRepository;
 import com.sicnelleapplicazioni.security.PasswordUtil;
+import com.sicnelleapplicazioni.util.ValidationUtil;
 
 import java.util.Arrays;
 import java.time.Instant;
@@ -22,6 +23,15 @@ public class RegistrationService {
     public boolean register(String username, String email, char[] password, String fullName) {
         try {
             if (!PasswordPolicyValidator.validate(password)) {
+                return false;
+            }
+            if (!ValidationUtil.isValidEmail(email)) {
+                return false;
+            }
+            if (!ValidationUtil.isValidUsername(username)) {
+                return false;
+            }
+            if (!ValidationUtil.isValidFullName(fullName)) {
                 return false;
             }
 

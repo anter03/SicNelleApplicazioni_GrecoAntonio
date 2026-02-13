@@ -10,30 +10,96 @@ public class ValidationUtil {
             + "[^-][A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)*(\\.[A-Za-z]{2,})$"
     );
 
-    // Regex for a simple username (alphanumeric, 3-20 characters)
-    private static final Pattern USERNAME_PATTERN = Pattern.compile("^[a-zA-Z0-9]{3,20}$");
+        // Regex for a simple username (alphanumeric, 3-20 characters)
 
-    /**
-     * Validates an email address against a predefined pattern.
-     * @param email The email to validate.
-     * @return true if the email is valid, false otherwise.
-     */
-    public static boolean isValidEmail(String email) {
-        if (email == null) {
-            return false;
+        private static final Pattern USERNAME_PATTERN = Pattern.compile("^[a-zA-Z0-9]{3,20}$");
+
+    
+
+        // Regex for full name (alphanumeric, spaces, hyphens, apostrophes, 2-100 characters)
+
+        private static final Pattern FULLNAME_PATTERN = Pattern.compile("^[a-zA-Z0-9'\\- ]{2,100}$");
+
+    
+
+        /**
+
+         * Validates an email address against a predefined pattern.
+
+         * @param email The email to validate.
+
+         * @return true if the email is valid, false otherwise.
+
+         */
+
+        public static boolean isValidEmail(String email) {
+
+            return isValidInput(email, EMAIL_PATTERN);
+
         }
-        return EMAIL_PATTERN.matcher(email).matches();
+
+    
+
+        /**
+
+         * Validates a username against a predefined pattern.
+
+         * @param username The username to validate.
+
+         * @return true if the username is valid, false otherwise.
+
+         */
+
+        public static boolean isValidUsername(String username) {
+
+            return isValidInput(username, USERNAME_PATTERN);
+
+        }
+
+    
+
+        /**
+
+         * Validates a full name against a predefined pattern.
+
+         * @param fullName The full name to validate.
+
+         * @return true if the full name is valid, false otherwise.
+
+         */
+
+        public static boolean isValidFullName(String fullName) {
+
+            return isValidInput(fullName, FULLNAME_PATTERN);
+
+        }
+
+    
+
+        /**
+
+         * Generic input validation method.
+
+         * @param input The input string to validate.
+
+         * @param pattern The pattern to match against.
+
+         * @return true if the input matches the pattern, false otherwise.
+
+         */
+
+        private static boolean isValidInput(String input, Pattern pattern) {
+
+            if (input == null) {
+
+                return false;
+
+            }
+
+            return pattern.matcher(input).matches();
+
+        }
+
     }
 
-    /**
-     * Validates a username against a predefined pattern.
-     * @param username The username to validate.
-     * @return true if the username is valid, false otherwise.
-     */
-    public static boolean isValidUsername(String username) {
-        if (username == null) {
-            return false;
-        }
-        return USERNAME_PATTERN.matcher(username).matches();
-    }
-}
+    

@@ -17,7 +17,9 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.UUID;
 import java.util.logging.Logger;
+import java.util.concurrent.Callable;
 
+import com.sicnelleapplicazioni.util.ConfigManager;
 import org.apache.tika.Tika;
 import org.apache.tika.mime.MediaType;
 import com.sicnelleapplicazioni.model.Content;
@@ -32,7 +34,7 @@ public class FileUploadServlet extends HttpServlet {
     private static final Logger LOGGER = Logger.getLogger(FileUploadServlet.class.getName());
 
     // Percorso finale dove vuoi i file (Desktop)
-    private static final String TARGET_STORAGE_PATH = "C:\\Users\\anton\\Desktop\\tikaUploadSna";
+    private static final String TARGET_STORAGE_PATH = ConfigManager.getProperty("uploadFilePath");
 
     private Tika tika;
     private ContentRepository contentRepository;
@@ -67,76 +69,130 @@ public class FileUploadServlet extends HttpServlet {
         }
     }
 
+
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        // Synchronize on the servlet instance to handle one upload at a time.
-        // This is a simple way to prevent race conditions on the file system and database.
-        synchronized (this) {
-            String message;
-            Path tempFilePath = null; // Usato solo se decidiamo di salvare un temp file noi, ma qui andiamo diretti
+        String originalFileName = null;
+        try {
+            Part filePart = req.getPart("file");
 
+            if (filePart == null || filePart.getSubmittedFileName() == null || filePart.getSize() == 0) {
+                showError(req, resp, "Nessun file selezionato o file vuoto.");
+                return;
+            }
+
+            originalFileName = Paths.get(filePart.getSubmittedFileName()).getFileName().toString();
+
+            if (!originalFileName.toLowerCase().endsWith(".txt")) {
+                showError(req, resp, "Solo i file .txt sono permessi (controllo estensione).");
+                return;
+            }
+
+            Long userId = (Long) req.getSession().getAttribute("userId");
+            if (userId == null) {
+                resp.sendRedirect(req.getContextPath() + "/login.jsp");
+                return;
+            }
+
+            // Create a temporary file
+            File tempDir = (File) getServletContext().getAttribute(ServletContext.TEMPDIR);
+            if (tempDir == null) {
+                tempDir = Files.createTempDirectory("sna_uploads_temp").toFile(); // Fallback if servlet context tempdir not set
+            }
+            Path tempFilePath = Files.createTempFile(tempDir.toPath(), "upload_", ".tmp");
+
+            // Copy stream to temporary file
+            try (InputStream inputStream = filePart.getInputStream()) {
+                Files.copy(inputStream, tempFilePath, StandardCopyOption.REPLACE_EXISTING);
+            }
+
+            // Execute file processing synchronously within doPost
+            String resultMessage = new UploadProcessor(
+                    tempFilePath, originalFileName, userId, tika, contentRepository,
+                    TARGET_STORAGE_PATH, getServletContext().getAttribute(ServletContext.TEMPDIR)
+            ).call();
+
+            if (resultMessage.contains("caricato con successo")) {
+                req.setAttribute("successMessage", "file caricato correttamente");
+            } else if (resultMessage.contains("Contenuto del file non valido")) {
+                req.setAttribute("errorMessage", resultMessage); // Use the specific error message
+            }
+            else {
+                req.setAttribute("errorMessage", "caricamento file fallito: " + resultMessage); // Generic failure message
+            }
+
+            req.getRequestDispatcher("/upload.jsp").forward(req, resp);
+
+        } catch (Exception e) {
+            handleError(req, resp, e);
+        }
+    }
+
+    private class UploadProcessor implements Callable<String> {
+        private final Path tempFilePath;
+        private final String originalFileName;
+        private final Long userId;
+        private final Tika processorTika;
+        private final ContentRepository processorContentRepository;
+        private final String processorTargetStoragePath;
+        private final Object servletContextTempDir; // To maintain consistent logging context
+
+        public UploadProcessor(Path tempFilePath, String originalFileName, Long userId,
+                               Tika tika, ContentRepository contentRepository, String targetStoragePath, Object servletContextTempDir) {
+            this.tempFilePath = tempFilePath;
+            this.originalFileName = originalFileName;
+            this.userId = userId;
+            this.processorTika = tika;
+            this.processorContentRepository = contentRepository;
+            this.processorTargetStoragePath = targetStoragePath;
+            this.servletContextTempDir = servletContextTempDir;
+        }
+
+        @Override
+        public String call() throws Exception {
+            Path finalDestination = null;
             try {
-                // Ora getPart non dovrebbe esplodere grazie al fix in init()
-                Part filePart = req.getPart("file");
-
-                if (filePart == null || filePart.getSubmittedFileName() == null || filePart.getSize() == 0) {
-                    showError(req, resp, "Nessun file selezionato o file vuoto.");
-                    return;
-                }
-
-                String originalFileName = Paths.get(filePart.getSubmittedFileName()).getFileName().toString();
-
-                // 1. Validazione estensione (veloce, ma non sicura)
-                if (!originalFileName.toLowerCase().endsWith(".txt")) {
-                    showError(req, resp, "Solo i file .txt sono permessi (controllo estensione).");
-                    return;
-                }
-
-                // 2. Preparazione destinazione finale
-                String internalFileName = UUID.randomUUID().toString() + ".txt";
-                Path finalDestination = Paths.get(TARGET_STORAGE_PATH, internalFileName);
-
-                // 3. Copia dello stream direttamente nella destinazione finale
-                // Nota: Se il controllo Tika fallisce dopo, cancelleremo questo file.
-                try (InputStream inputStream = filePart.getInputStream()) {
-                    Files.copy(inputStream, finalDestination, StandardCopyOption.REPLACE_EXISTING);
-                }
-
-                // 4. Validazione MIME Type REALE con Tika (sul file appena salvato)
-                String detectedMimeType = tika.detect(finalDestination.toFile());
+                // Validate MIME Type REAL on the temporary file
+                String detectedMimeType = processorTika.detect(tempFilePath.toFile());
 
                 if (!MediaType.TEXT_PLAIN.toString().equals(detectedMimeType)) {
-                    // Il file è bugiardo: ha estensione .txt ma dentro non lo è. Cancelliamo tutto.
-                    Files.deleteIfExists(finalDestination);
-                    showError(req, resp, "Contenuto del file non valido. Accettiamo solo puro testo (text/plain).");
-                    return;
+                    LOGGER.warning("Contenuto del file non valido per: " + originalFileName + ". Rilevato: " + detectedMimeType);
+                    return "Contenuto del file non valido. Accettiamo solo puro testo (text/plain).";
                 }
 
-                // 5. Recupero utente
-                Long userId = (Long) req.getSession().getAttribute("userId");
-                if (userId == null) {
-                    Files.deleteIfExists(finalDestination); // Pulizia
-                    resp.sendRedirect(req.getContextPath() + "/login.jsp");
-                    return;
-                }
+                // Generate unique internal name and define final destination
+                String internalFileName = UUID.randomUUID().toString() + ".txt";
+                finalDestination = Paths.get(processorTargetStoragePath, internalFileName);
 
-                // 6. Salvataggio su DB
+                // Move temporary file to final destination
+                Files.move(tempFilePath, finalDestination, StandardCopyOption.REPLACE_EXISTING);
+
                 Content content = new Content();
                 content.setUserId(userId);
                 content.setOriginalName(originalFileName);
                 content.setInternalName(internalFileName);
                 content.setMimeType(detectedMimeType);
-                content.setSize(Files.size(finalDestination));
+                content.setSize(Files.size(finalDestination)); // Get size from final file
                 content.setFilePath(finalDestination.toString());
 
-                contentRepository.save(content);
+                processorContentRepository.save(content);
 
-                // Successo
-                req.setAttribute("successMessage", "file caricato con successo");
-                req.getRequestDispatcher("/upload.jsp").forward(req, resp);
+                LOGGER.info("File '" + originalFileName + "' caricato e processato con successo da thread separato.");
+                return "File '" + originalFileName + "' caricato con successo!";
 
             } catch (Exception e) {
-                handleError(req, resp, e);
+                LOGGER.log(java.util.logging.Level.SEVERE, "Errore durante l'elaborazione del file in thread separato: " + originalFileName, e);
+                return "Errore durante l'elaborazione del file: " + e.getMessage();
+            } finally {
+                // Ensure temporary file is always deleted after processing
+                if (tempFilePath != null && Files.exists(tempFilePath)) {
+                    try {
+                        Files.delete(tempFilePath);
+                        LOGGER.log(java.util.logging.Level.INFO, "Temporary file deleted: " + tempFilePath);
+                    } catch (IOException ex) {
+                        LOGGER.log(java.util.logging.Level.SEVERE, "Error deleting temporary file in finally block: " + tempFilePath, ex);
+                    }
+                }
             }
         }
     }
