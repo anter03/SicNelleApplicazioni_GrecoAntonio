@@ -11,7 +11,6 @@
     <div class="container">
         <h1>404 - Not Found</h1>
         <p>The page you requested could not be found.</p>
-        <p><a href="login.jsp">Go to Login</a></p>
-    </div>
+<p><a href="${pageContext.request.contextPath}/login">Torna al Login</a></p>    </div>
 </body>
 </html>

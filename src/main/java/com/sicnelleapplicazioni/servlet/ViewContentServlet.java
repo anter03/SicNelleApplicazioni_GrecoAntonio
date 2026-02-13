@@ -55,7 +55,7 @@ public class ViewContentServlet extends HttpServlet {
 					String contentText = Files.readString(filePath, StandardCharsets.UTF_8);
 					req.setAttribute("content", content);
 					req.setAttribute("contentText", contentText);
-					req.getRequestDispatcher("/viewContent.jsp").forward(req, resp);
+					req.getRequestDispatcher("/WEB-INF/views/viewContent.jsp").forward(req, resp);
 				} else {
 					LOGGER.log(Level.WARNING, "File not found for content ID: " + contentId);
 					resp.sendError(HttpServletResponse.SC_NOT_FOUND, "File not found.");

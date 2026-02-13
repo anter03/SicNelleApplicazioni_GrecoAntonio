@@ -11,7 +11,7 @@
 
         <div class="nav-links">
             <p>
-                <a href="${pageContext.request.contextPath}/upload.jsp" class="upload-link button">Carica i tuoi file</a>
+                <a href="${pageContext.request.contextPath}/upload" class="upload-link button">Carica i tuoi file</a>
                 | 
                 <a href="${pageContext.request.contextPath}/logout">Esci</a>
             </p>

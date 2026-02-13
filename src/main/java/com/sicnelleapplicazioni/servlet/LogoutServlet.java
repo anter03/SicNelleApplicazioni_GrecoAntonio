@@ -46,6 +46,6 @@ public class LogoutServlet extends HttpServlet {
         resp.setHeader("Expires", "0");          // Proxies.
 
         // Redirect to login page
-        resp.sendRedirect(req.getContextPath() + "/login.jsp");
+        resp.sendRedirect(req.getContextPath() + "/login");
     }
 }

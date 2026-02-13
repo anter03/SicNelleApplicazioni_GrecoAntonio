@@ -58,7 +58,7 @@ public class DeleteServlet extends HttpServlet {
                 contentRepository.delete(contentId);
 
                 // Redirect to the home page to show the updated list
-                resp.sendRedirect(req.getContextPath() + "/home");
+                resp.sendRedirect(req.getContextPath() + "/WEB-INF/views/home.jsp");
 
             } catch (IOException e) {
                 LOGGER.log(Level.SEVERE, "Error deleting file for content ID: " + contentId, e);
@@ -74,6 +74,6 @@ public class DeleteServlet extends HttpServlet {
         // To prevent accidental deletion via a simple link click, we can show a confirmation page.
         // For this implementation, we will redirect to the home page with an error message.
         req.getSession().setAttribute("errorMessage", "Deletion must be performed via a POST request.");
-        resp.sendRedirect(req.getContextPath() + "/home");
+        resp.sendRedirect(req.getContextPath() + "/WEB-INF/views/home.jsp");
     }
 }

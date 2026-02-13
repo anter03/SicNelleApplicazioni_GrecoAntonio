@@ -28,6 +28,10 @@ public class RegistrationServlet extends HttpServlet {
     }
 
     @Override
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        req.getRequestDispatcher("/WEB-INF/views/register.jsp").forward(req, resp);
+    }
+        @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         HttpSession session = req.getSession();
 
@@ -39,18 +43,18 @@ public class RegistrationServlet extends HttpServlet {
         // Server-side Validation
         if (!ValidationUtil.isValidUsername(username)) {
             session.setAttribute("errorMessage", "Invalid username. Username must be alphanumeric and between 3 and 20 characters.");
-            resp.sendRedirect(req.getContextPath() + "/register.jsp");
+            resp.sendRedirect(req.getContextPath() + "/WEB-INF/views/register.jsp");
             return;
         }
         if (!ValidationUtil.isValidEmail(email)) {
             session.setAttribute("errorMessage", "Invalid email address. Please enter a valid email.");
-            resp.sendRedirect(req.getContextPath() + "/register.jsp");
+            resp.sendRedirect(req.getContextPath() + "/WEB-INF/views/register.jsp");
             return;
         }
         // Basic full name validation (can be expanded)
         if (fullName == null || fullName.trim().isEmpty() || fullName.length() > 100) {
             session.setAttribute("errorMessage", "Full name is required and cannot exceed 100 characters.");
-            resp.sendRedirect(req.getContextPath() + "/register.jsp");
+            resp.sendRedirect(req.getContextPath() + "/WEB-INF/views/register.jsp");
             return;
         }
 
@@ -65,10 +69,10 @@ public class RegistrationServlet extends HttpServlet {
 
         if (success) {
             session.setAttribute("successMessage", "Registration successful! You can now log in."); // Removed email verification message
-            resp.sendRedirect(req.getContextPath() + "/login.jsp"); // Redirect to login page
+            resp.sendRedirect(req.getContextPath() + "/WEB-INF/views/login.jsp"); // Redirect to login page
         } else {
             session.setAttribute("errorMessage", "Impossibile completare la registrazione. I dati inseriti non sono validi o sono già associati a un account");
-            resp.sendRedirect(req.getContextPath() + "/register.jsp");
+            resp.sendRedirect(req.getContextPath() + "/WEB-INF/views/register.jsp");
         }
     }
 }

@@ -79,6 +79,6 @@ public class DisplayContentServlet extends HttpServlet {
         if (errorMessage != null) {
             req.setAttribute("errorMessage", errorMessage);
         }
-        req.getRequestDispatcher("/home.jsp").forward(req, resp);
+        req.getRequestDispatcher("/WEB-INF/views/home.jsp").forward(req, resp);
     }
 }

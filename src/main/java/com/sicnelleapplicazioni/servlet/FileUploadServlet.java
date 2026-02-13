@@ -69,7 +69,12 @@ public class FileUploadServlet extends HttpServlet {
         }
     }
 
+    @Override
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp)
+            throws ServletException, IOException {
 
+        req.getRequestDispatcher("/WEB-INF/views/upload.jsp").forward(req, resp);
+    }
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         String originalFileName = null;
@@ -90,7 +95,7 @@ public class FileUploadServlet extends HttpServlet {
 
             Long userId = (Long) req.getSession().getAttribute("userId");
             if (userId == null) {
-                resp.sendRedirect(req.getContextPath() + "/login.jsp");
+                resp.sendRedirect(req.getContextPath() + "/WEB-INF/views/login.jsp");
                 return;
             }
 
@@ -121,7 +126,7 @@ public class FileUploadServlet extends HttpServlet {
                 req.setAttribute("errorMessage", "caricamento file fallito: " + resultMessage); // Generic failure message
             }
 
-            req.getRequestDispatcher("/upload.jsp").forward(req, resp);
+            req.getRequestDispatcher("/WEB-INF/views/upload.jsp").forward(req, resp);
 
         } catch (Exception e) {
             handleError(req, resp, e);
@@ -205,7 +210,7 @@ public class FileUploadServlet extends HttpServlet {
         } else {
             req.setAttribute("errorMessage", "caricamento file fallito");
         }
-        req.getRequestDispatcher("/upload.jsp").forward(req, resp);
+        req.getRequestDispatcher("/WEB-INF/views/upload.jsp").forward(req, resp);
     }
 
     private void handleError(HttpServletRequest req, HttpServletResponse resp, Exception e) throws ServletException, IOException {
@@ -217,6 +222,6 @@ public class FileUploadServlet extends HttpServlet {
         LOGGER.log(java.util.logging.Level.SEVERE, "Upload error - User: " + userId + ", IP: " + ipAddress, e);
 
         req.setAttribute("errorMessage", "caricamento file fallito");
-        req.getRequestDispatcher("/upload.jsp").forward(req, resp);
+        req.getRequestDispatcher("/WEB-INF/views/upload.jsp").forward(req, resp);
     }
 }

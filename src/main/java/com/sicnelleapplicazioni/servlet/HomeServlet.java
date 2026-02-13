@@ -45,7 +45,7 @@ public class HomeServlet extends HttpServlet {
 
         req.setAttribute("userContents", userContents);
         req.setAttribute("otherUsersContents", otherUsersContents);
-        req.getRequestDispatcher("/home.jsp").forward(req, resp);
+        req.getRequestDispatcher("/WEB-INF/views/home.jsp").forward(req, resp);
     }
 }
 
