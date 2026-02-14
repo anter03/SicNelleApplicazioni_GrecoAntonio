@@ -9,6 +9,18 @@
         <http-only>true</http-only> <secure>true</secure> </cookie-config>
         <tracking-mode>COOKIE</tracking-mode>
     </session-config>
+
+    <filter>
+        <filter-name>RateLimitingFilter</filter-name>
+        <filter-class>com.sicnelleapplicazioni.filter.RateLimitingFilter</filter-class>
+    </filter>
+    <filter-mapping>
+        <filter-name>RateLimitingFilter</filter-name>
+        <url-pattern>/login</url-pattern>
+    </filter-mapping>
+
+
+
     <filter>
         <filter-name>CookieSecurityFilter</filter-name>
         <filter-class>com.sicnelleapplicazioni.filter.CookieSecurityFilter</filter-class>
@@ -19,14 +31,6 @@
         <url-pattern>/*</url-pattern>
     </filter-mapping>
 
-    <filter>
-        <filter-name>RateLimitingFilter</filter-name>
-        <filter-class>com.sicnelleapplicazioni.filter.RateLimitingFilter</filter-class>
-    </filter>
-    <filter-mapping>
-        <filter-name>RateLimitingFilter</filter-name>
-        <url-pattern>/login</url-pattern>
-    </filter-mapping>
 
     <filter>
         <filter-name>XFrameOptionsFilter</filter-name>
@@ -46,14 +50,6 @@
         <url-pattern>/*</url-pattern>
     </filter-mapping>
 
-    <filter>
-        <filter-name>AuthenticationFilter</filter-name>
-        <filter-class>com.sicnelleapplicazioni.filter.AuthenticationFilter</filter-class>
-    </filter>
-    <filter-mapping>
-        <filter-name>AuthenticationFilter</filter-name>
-        <url-pattern>/*</url-pattern>
-    </filter-mapping>
 
     <welcome-file-list>
         <welcome-file>login</welcome-file>

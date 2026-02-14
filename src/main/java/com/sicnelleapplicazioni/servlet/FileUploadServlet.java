@@ -88,6 +88,17 @@ public class FileUploadServlet extends HttpServlet {
 
             originalFileName = Paths.get(filePart.getSubmittedFileName()).getFileName().toString();
 
+            // --- SANITIZZAZIONE NOME FILE (Difesa contro Stored XSS e Path Traversal - RF 3.4 / TA5) ---
+// Sostituiamo tutto ciò che non è lettera, numero, punto, underscore o trattino con un underscore.
+// Nota: 0-9 corregge il range numerico.
+            originalFileName = originalFileName.replaceAll("[^a-zA-Z0-9._-]", "_");
+
+// Limitiamo anche la lunghezza del nome file per evitare Buffer Overflow o problemi di FS
+            if (originalFileName.length() > 255) {
+                originalFileName = originalFileName.substring(0, 250) + ".txt";
+            }
+
+
             if (!originalFileName.toLowerCase().endsWith(".txt")) {
                 showError(req, resp, "Solo i file .txt sono permessi (controllo estensione).");
                 return;

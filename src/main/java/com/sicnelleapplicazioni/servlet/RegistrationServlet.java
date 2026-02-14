@@ -6,73 +6,71 @@ import com.sicnelleapplicazioni.service.RegistrationService;
 import com.sicnelleapplicazioni.util.ValidationUtil;
 
 import java.security.SecureRandom;
-
 import javax.servlet.ServletException;
-import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
 import java.io.IOException;
+import java.util.Arrays;
 
-//@WebServlet("/register")
 public class RegistrationServlet extends HttpServlet {
 
     private RegistrationService registrationService;
 
     @Override
     public void init() throws ServletException {
-        // Instantiate dependencies
         UserRepository userRepository = new JdbcUserRepository();
-        this.registrationService = new RegistrationService(userRepository); // Updated constructor
+        this.registrationService = new RegistrationService(userRepository);
     }
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        // Accesso corretto alla JSP protetta
         req.getRequestDispatcher("/WEB-INF/views/register.jsp").forward(req, resp);
     }
-        @Override
-    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        HttpSession session = req.getSession();
 
+    @Override
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         String username = req.getParameter("username");
         String email = req.getParameter("email");
-        char[] password = req.getParameter("password").toCharArray();
-        String fullName = req.getParameter("fullName"); // New parameter
+        String rawPassword = req.getParameter("password");
+        String fullName = req.getParameter("fullName");
 
-        // Server-side Validation
-        if (!ValidationUtil.isValidUsername(username)) {
-            session.setAttribute("errorMessage", "Invalid username. Username must be alphanumeric and between 3 and 20 characters.");
-            resp.sendRedirect(req.getContextPath() + "/WEB-INF/views/register.jsp");
-            return;
-        }
-        if (!ValidationUtil.isValidEmail(email)) {
-            session.setAttribute("errorMessage", "Invalid email address. Please enter a valid email.");
-            resp.sendRedirect(req.getContextPath() + "/WEB-INF/views/register.jsp");
-            return;
-        }
-        // Basic full name validation (can be expanded)
-        if (fullName == null || fullName.trim().isEmpty() || fullName.length() > 100) {
-            session.setAttribute("errorMessage", "Full name is required and cannot exceed 100 characters.");
-            resp.sendRedirect(req.getContextPath() + "/WEB-INF/views/register.jsp");
+        if (username == null || email == null || rawPassword == null || fullName == null) {
+            // USO REQUEST: il forward mantiene la stessa richiesta
+            req.setAttribute("errorMessage", "Tutti i campi sono obbligatori.");
+            req.getRequestDispatcher("/WEB-INF/views/register.jsp").forward(req, resp);
             return;
         }
 
-        boolean success = registrationService.register(username, email, password, fullName);
-
-        // Add a random delay to mitigate timing attacks
+        char[] password = rawPassword.toCharArray();
         try {
-            Thread.sleep(new SecureRandom().nextInt(500) + 500);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
+            if (!ValidationUtil.isValidUsername(username) || !ValidationUtil.isValidEmail(email)) {
+                req.setAttribute("errorMessage", "Dati inseriti non validi.");
+                req.getRequestDispatcher("/WEB-INF/views/register.jsp").forward(req, resp);
+                return;
+            }
 
-        if (success) {
-            session.setAttribute("successMessage", "Registration successful! You can now log in."); // Removed email verification message
-            resp.sendRedirect(req.getContextPath() + "/WEB-INF/views/login.jsp"); // Redirect to login page
-        } else {
-            session.setAttribute("errorMessage", "Impossibile completare la registrazione. I dati inseriti non sono validi o sono già associati a un account");
-            resp.sendRedirect(req.getContextPath() + "/WEB-INF/views/register.jsp");
+            boolean success = registrationService.register(username, email, password, fullName);
+
+            // Mitigazione Timing Attack (RF 3.7)
+            Thread.sleep(new SecureRandom().nextInt(300) + 200);
+
+            if (success) {
+                // USO SESSION: il redirect crea una nuova richiesta, serve la sessione per "trasportare" il messaggio
+                req.getSession().setAttribute("successMessage", "Registrazione completata! Puoi accedere.");
+                resp.sendRedirect(req.getContextPath() + "/login");
+            } else {
+                req.setAttribute("errorMessage", "Account già esistente o errore di sistema.");
+                req.getRequestDispatcher("/WEB-INF/views/register.jsp").forward(req, resp);
+            }
+        } catch (Exception e) {
+            req.setAttribute("errorMessage", "Errore generico durante la registrazione.");
+            req.getRequestDispatcher("/WEB-INF/views/register.jsp").forward(req, resp);
+        } finally {
+            Arrays.fill(password, '\0');
         }
     }
+
+
 }

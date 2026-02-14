@@ -37,6 +37,7 @@ public class DownloadServlet extends HttpServlet {
             return;
         }
 
+        Long currentUserId = (Long) req.getSession().getAttribute("userId");
         UUID contentId;
         try {
             contentId = UUID.fromString(idParam);
@@ -49,6 +50,14 @@ public class DownloadServlet extends HttpServlet {
 
         if (contentOpt.isPresent()) {
             Content content = contentOpt.get();
+
+            // VERIFICA DI AUTORIZZAZIONE puoi csaricare solo i tuoi file
+            if (!content.getUserId().equals(currentUserId)) {
+                LOGGER.warning("Tentativo di accesso non autorizzato al file " + contentId + " da parte dell'utente " + currentUserId);
+                resp.sendError(HttpServletResponse.SC_FORBIDDEN, "Non hai i permessi per scaricare questo file.");
+                return;
+            }
+
             Path filePath = Paths.get(content.getFilePath());
 
             if (Files.exists(filePath)) {

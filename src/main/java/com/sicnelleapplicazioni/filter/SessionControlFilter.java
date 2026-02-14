@@ -52,6 +52,16 @@ public class SessionControlFilter implements Filter {
         HttpServletRequest httpRequest = (HttpServletRequest) request;
         HttpServletResponse httpResponse = (HttpServletResponse) response;
 
+
+
+        // Impedisce che il sito venga caricato in un <iframe> (Protezione Clickjacking - RF 3.7)
+        httpResponse.setHeader("X-Frame-Options", "DENY");
+        // Blocca il caricamento di script se il browser rileva XSS (Protezione XSS - RF 3.4)
+        httpResponse.setHeader("X-XSS-Protection", "1; mode=block");
+        // Impedisce al browser di interpretare i file come MIME-type diversi da quelli dichiarati
+        httpResponse.setHeader("X-Content-Type-Options", "nosniff");
+
+
         // Calcola il path relativo
         String contextPath = httpRequest.getContextPath();
         String requestURI = httpRequest.getRequestURI();

@@ -3,6 +3,7 @@ package com.sicnelleapplicazioni.servlet;
 import com.sicnelleapplicazioni.model.Content;
 import com.sicnelleapplicazioni.repository.ContentRepository;
 import com.sicnelleapplicazioni.repository.JdbcContentRepository;
+import com.sicnelleapplicazioni.util.ConfigManager;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -26,7 +27,7 @@ public class DisplayContentServlet extends HttpServlet {
     private static final Logger LOGGER = Logger.getLogger(DisplayContentServlet.class.getName());
     // UPLOAD_DIRECTORY should be in configuration, but keeping it here for now
     // This is the base directory where files are stored
-    private static final String BASE_FILE_STORAGE_PATH = "/tmp/uploads"; 
+    private static final String BASE_FILE_STORAGE_PATH = ConfigManager.getProperty("uploadFilePath");
     private ContentRepository contentRepository;
 
     @Override

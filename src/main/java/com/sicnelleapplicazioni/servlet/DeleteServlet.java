@@ -46,9 +46,19 @@ public class DeleteServlet extends HttpServlet {
 
         Optional<Content> contentOpt = contentRepository.findById(contentId);
 
+        Long currentUserId = (Long) req.getSession().getAttribute("userId");
+
         if (contentOpt.isPresent()) {
             Content content = contentOpt.get();
             Path filePath = Paths.get(content.getFilePath());
+
+
+            // VERIFICA DI AUTORIZZAZIONE puoi scaricare solo i tuoi file
+            if (!content.getUserId().equals(currentUserId)) {
+                LOGGER.warning("Tentativo di accesso non autorizzato al file " + contentId + " da parte dell'utente " + currentUserId);
+                resp.sendError(HttpServletResponse.SC_FORBIDDEN, "Non hai i permessi per scaricare questo file.");
+                return;
+            }
 
             try {
                 // First, delete the file from the filesystem
@@ -58,8 +68,8 @@ public class DeleteServlet extends HttpServlet {
                 contentRepository.delete(contentId);
 
                 // Redirect to the home page to show the updated list
-                resp.sendRedirect(req.getContextPath() + "/WEB-INF/views/home.jsp");
 
+                resp.sendRedirect(req.getContextPath() + "/home");
             } catch (IOException e) {
                 LOGGER.log(Level.SEVERE, "Error deleting file for content ID: " + contentId, e);
                 resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Error deleting file.");
@@ -74,6 +84,6 @@ public class DeleteServlet extends HttpServlet {
         // To prevent accidental deletion via a simple link click, we can show a confirmation page.
         // For this implementation, we will redirect to the home page with an error message.
         req.getSession().setAttribute("errorMessage", "Deletion must be performed via a POST request.");
-        resp.sendRedirect(req.getContextPath() + "/WEB-INF/views/home.jsp");
+        resp.sendRedirect(req.getContextPath() + "/home");
     }
 }
