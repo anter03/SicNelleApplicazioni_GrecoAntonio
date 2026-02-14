@@ -100,6 +100,14 @@ public class ValidationUtil {
 
         }
 
+    public static boolean isStrongPassword(String password) {
+        if (password == null) return false;
+
+        // Almeno 8 caratteri, una maiuscola, una minuscola, un numero e un carattere speciale
+        String regex = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=!])(?=\\S+$).{8,}$";
+        return password.matches(regex);
+    }
+
     }
 
     

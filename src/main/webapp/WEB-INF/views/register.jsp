@@ -33,16 +33,18 @@
 
         <form action="${pageContext.request.contextPath}/register" method="post">
             <label for="username">Username:</label><br>
-            <input type="text" id="username" name="username" required><br><br>
+            <input type="text" id="username" name="username" required><br>
 
             <label for="email">Email:</label><br>
-            <input type="email" id="email" name="email" required><br><br>
+            <input type="email" id="email" name="email" required><br>
 
             <label for="password">Password:</label><br>
-            <input type="password" id="password" name="password" required><br><br>
+            <input type="password" id="password" name="password" required>
+            <span>Almeno 8 caratteri (una maiuscola, una minuscola, un numero e un carattere speciale) </span>
+            <br><br>
 
             <label for="fullName">Full Name:</label><br>
-            <input type="text" id="fullName" name="fullName" required><br><br>
+            <input type="text" id="fullName" name="fullName" required><br>
 
             <input type="submit" value="Register">
         </form>

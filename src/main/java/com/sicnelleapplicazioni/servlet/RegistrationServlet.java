@@ -36,6 +36,15 @@ public class RegistrationServlet extends HttpServlet {
         String rawPassword = req.getParameter("password");
         String fullName = req.getParameter("fullName");
 
+        // 1. Validazione Robustezza Password (RF1)
+        if (!ValidationUtil.isStrongPassword(rawPassword)) {
+            req.setAttribute("errorMessage", "La password deve contenere almeno 8 caratteri, una maiuscola, un numero e un carattere speciale.");
+            req.getRequestDispatcher("/WEB-INF/views/register.jsp").forward(req, resp);
+            return;
+        }
+
+
+
         if (username == null || email == null || rawPassword == null || fullName == null) {
             // USO REQUEST: il forward mantiene la stessa richiesta
             req.setAttribute("errorMessage", "Tutti i campi sono obbligatori.");

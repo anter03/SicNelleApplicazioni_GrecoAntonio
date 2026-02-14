@@ -4,18 +4,81 @@
 <head>
     <title>Home</title>
     <link rel="stylesheet" type="text/css" href="${pageContext.request.contextPath}/css/style.css">
+    <style>
+        .nav-container {
+            margin: 20px 0;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 15px;
+            justify-content: flex-start;
+            align-items: center;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            gap: 8px; /* Spazio tra icona e testo */
+        }
+
+        /* Bottone Carica */
+        .btn-upload {
+            background-color: #3498db;
+            color: white;
+            border: 1px solid #2980b9;
+        }
+
+        .btn-upload:hover {
+            background-color: #2980b9;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            transform: translateY(-1px);
+        }
+
+        /* Bottone Esci */
+        .btn-logout {
+            background-color: #f8f9fa;
+            color: #e74c3c;
+            border: 1px solid #e74c3c;
+        }
+
+        .btn-logout:hover {
+            background-color: #e74c3c;
+            color: white;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            transform: translateY(-1px);
+        }
+
+        /* Icone */
+        .btn i {
+            font-size: 1.1em;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
         <h1>Benvenuto, <c:out value="${sessionScope.username != null ? sessionScope.username : sessionScope.email}" />!</h1>
 
-        <div class="nav-links">
-            <p>
-                <a href="${pageContext.request.contextPath}/upload" class="upload-link button">Carica i tuoi file</a>
-                | 
-                <a href="${pageContext.request.contextPath}/logout">Esci</a>
-            </p>
-        </div>
+     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+     <div class="nav-container">
+         <div class="nav-links">
+             <a href="${pageContext.request.contextPath}/upload" class="btn btn-upload">
+                 <i class="fas fa-cloud-upload-alt"></i> Carica i tuoi file
+             </a>
+             <a href="${pageContext.request.contextPath}/logout" class="btn btn-logout">
+                 <i class="fas fa-sign-out-alt"></i> Logout
+             </a>
+         </div>
+     </div>
 
         <c:if test="${not empty sessionScope.successMessage}">
             <p class="success-message"><c:out value="${sessionScope.successMessage}" /></p>

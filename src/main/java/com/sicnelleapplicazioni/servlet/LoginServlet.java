@@ -75,9 +75,9 @@ public class LoginServlet extends HttpServlet {
 
                 // 5. RECUPERO UTENTE E POPOLAMENTO SESSIONE
                 Optional<User> userOptional = userRepository.findByEmail(identifier.trim());
-                if (userOptional.isEmpty()) {
-                    userOptional = userRepository.findByUsername(identifier.trim());
-                }
+                //if (userOptional.isEmpty()) {
+                //    userOptional = userRepository.findByUsername(identifier.trim());
+                //}
 
                 if (userOptional.isPresent()) {
                     User user = userOptional.get();
@@ -106,7 +106,7 @@ public class LoginServlet extends HttpServlet {
                     }
                 } else {
                     // Caso teoricamente impossibile
-                    throw new ServletException("User not found after successful authentication");
+                    throw new ServletException("User not found");
                 }
             } else {
                 // 10. GESTIONE ERRORE - Messaggio generico (anti enumeration attack)
