@@ -79,6 +79,7 @@ public class SessionControlFilter implements Filter {
         }
 
         // 2. CONTROLLO SESSIONE E AUTENTICAZIONE
+        String msg = "Sessione scaduta o non valida";
         HttpSession session = httpRequest.getSession(false);
         boolean isAuthenticated = (session != null &&
                 session.getAttribute("userId") != null &&
@@ -92,7 +93,7 @@ public class SessionControlFilter implements Filter {
                 session.getCreationTime(); // Lancia eccezione se sessione invalidata
             } catch (IllegalStateException e) {
                 System.out.println("[SECURITY] Invalid session detected");
-                redirectToLogin(httpRequest, httpResponse, path);
+                redirectToLogin(httpRequest, httpResponse, path,msg);
                 return;
             }
 
@@ -100,8 +101,9 @@ public class SessionControlFilter implements Filter {
             chain.doFilter(request, response);
         } else {
             // 5. UTENTE NON AUTENTICATO - Redirect a login
+
             System.out.println("[SECURITY] Unauthorized access attempt to: " + path);
-            redirectToLogin(httpRequest, httpResponse, path);
+            redirectToLogin(httpRequest, httpResponse, path,msg);
         }
     }
 
@@ -129,7 +131,8 @@ public class SessionControlFilter implements Filter {
      */
     private void redirectToLogin(HttpServletRequest request,
                                  HttpServletResponse response,
-                                 String originalPath) throws IOException {
+                                 String originalPath,
+                                 String msg ) throws IOException {
 
         // Salva l'URL originale per redirect post-login (solo per GET)
         if ("GET".equalsIgnoreCase(request.getMethod()) &&
@@ -137,6 +140,7 @@ public class SessionControlFilter implements Filter {
                 !originalPath.isEmpty()) {
 
             HttpSession session = request.getSession(true);
+            session.setAttribute("errorMessage", msg);
             session.setAttribute("redirectAfterLogin",
                     request.getContextPath() + originalPath);
         }

@@ -11,11 +11,13 @@ import javax.servlet.http.Part;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.UUID;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.concurrent.Callable;
 
@@ -28,13 +30,16 @@ import com.sicnelleapplicazioni.repository.JdbcContentRepository;
 
 
 //@WebServlet(name = "FileUploadServlet", urlPatterns = "/upload")
-
+@MultipartConfig // Necessario per gestire i file upload
 public class FileUploadServlet extends HttpServlet {
 
     private static final Logger LOGGER = Logger.getLogger(FileUploadServlet.class.getName());
 
     // Percorso finale dove vuoi i file (Desktop)
     private static final String TARGET_STORAGE_PATH = ConfigManager.getProperty("uploadFilePath");
+
+    // Risorsa condivisa: oggetto monitor per il lock (Per Test TU10)
+    private static final Object logLock = new Object();
 
     private Tika tika;
     private ContentRepository contentRepository;
@@ -49,9 +54,7 @@ public class FileUploadServlet extends HttpServlet {
             }
 
             // 2. FIX PER L'ERRORE SMART TOMCAT:
-            // Recuperiamo la directory temporanea che Tomcat VORREBBE usare
             File tempDir = (File) getServletContext().getAttribute(ServletContext.TEMPDIR);
-            // Se quella maledetta cartella non esiste, la creiamo noi a forza.
             if (tempDir != null && !tempDir.exists()) {
                 boolean created = tempDir.mkdirs();
                 if (created) {
@@ -75,6 +78,7 @@ public class FileUploadServlet extends HttpServlet {
 
         req.getRequestDispatcher("/WEB-INF/views/upload.jsp").forward(req, resp);
     }
+
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         String originalFileName = null;
@@ -89,18 +93,15 @@ public class FileUploadServlet extends HttpServlet {
             originalFileName = Paths.get(filePart.getSubmittedFileName()).getFileName().toString();
 
             // --- SANITIZZAZIONE NOME FILE (Difesa contro Stored XSS e Path Traversal - RF 3.4 / TA5) ---
-// Sostituiamo tutto ciò che non è lettera, numero, punto, underscore o trattino con un underscore.
-// Nota: 0-9 corregge il range numerico.
             originalFileName = originalFileName.replaceAll("[^a-zA-Z0-9._-]", "_");
 
-// Limitiamo anche la lunghezza del nome file per evitare Buffer Overflow o problemi di FS
+            // Limitiamo anche la lunghezza del nome file
             if (originalFileName.length() > 255) {
                 originalFileName = originalFileName.substring(0, 250) + ".txt";
             }
 
-
             if (!originalFileName.toLowerCase().endsWith(".txt")) {
-                showError(req, resp, "Solo i file .txt sono permessi (controllo estensione).");
+                showError(req, resp, "Estensione non valida");
                 return;
             }
 
@@ -113,7 +114,7 @@ public class FileUploadServlet extends HttpServlet {
             // Create a temporary file
             File tempDir = (File) getServletContext().getAttribute(ServletContext.TEMPDIR);
             if (tempDir == null) {
-                tempDir = Files.createTempDirectory("sna_uploads_temp").toFile(); // Fallback if servlet context tempdir not set
+                tempDir = Files.createTempDirectory("sna_uploads_temp").toFile();
             }
             Path tempFilePath = Files.createTempFile(tempDir.toPath(), "upload_", ".tmp");
 
@@ -131,10 +132,10 @@ public class FileUploadServlet extends HttpServlet {
             if (resultMessage.contains("caricato con successo")) {
                 req.setAttribute("successMessage", "file caricato correttamente");
             } else if (resultMessage.contains("Contenuto del file non valido")) {
-                req.setAttribute("errorMessage", resultMessage); // Use the specific error message
+                req.setAttribute("errorMessage", resultMessage);
             }
             else {
-                req.setAttribute("errorMessage", "caricamento file fallito: " + resultMessage); // Generic failure message
+                req.setAttribute("errorMessage", "caricamento file fallito: " + resultMessage);
             }
 
             req.getRequestDispatcher("/WEB-INF/views/upload.jsp").forward(req, resp);
@@ -151,7 +152,7 @@ public class FileUploadServlet extends HttpServlet {
         private final Tika processorTika;
         private final ContentRepository processorContentRepository;
         private final String processorTargetStoragePath;
-        private final Object servletContextTempDir; // To maintain consistent logging context
+        private final Object servletContextTempDir;
 
         public UploadProcessor(Path tempFilePath, String originalFileName, Long userId,
                                Tika tika, ContentRepository contentRepository, String targetStoragePath, Object servletContextTempDir) {
@@ -173,7 +174,7 @@ public class FileUploadServlet extends HttpServlet {
 
                 if (!MediaType.TEXT_PLAIN.toString().equals(detectedMimeType)) {
                     LOGGER.warning("Contenuto del file non valido per: " + originalFileName + ". Rilevato: " + detectedMimeType);
-                    return "Contenuto del file non valido. Accettiamo solo puro testo (text/plain).";
+                    return "Contenuto del file non valido. Accettiamo solo file  .txt.";
                 }
 
                 // Generate unique internal name and define final destination
@@ -192,6 +193,12 @@ public class FileUploadServlet extends HttpServlet {
                 content.setFilePath(finalDestination.toString());
 
                 processorContentRepository.save(content);
+
+                // --- PUNTO DI INTEGRAZIONE TU10 ---
+                // Qui chiamiamo la funzione di log sincronizzata.
+                // Poiché UploadProcessor è una inner class, può chiamare i metodi della classe esterna.
+                updateAuditLog(String.valueOf(userId), originalFileName);
+                // ----------------------------------
 
                 LOGGER.info("File '" + originalFileName + "' caricato e processato con successo da thread separato.");
                 return "File '" + originalFileName + "' caricato con successo!";
@@ -214,10 +221,8 @@ public class FileUploadServlet extends HttpServlet {
     }
 
     private void showError(HttpServletRequest req, HttpServletResponse resp, String msg) throws ServletException, IOException {
-        // For specific, safe-to-display errors, we show them.
-        // For generic ones, we use a standard message.
-        if (msg.contains("Contenuto del file non valido")) {
-            req.setAttribute("errorMessage", "Contenuto del file non valido. Accettiamo solo puro testo (text/plain).");
+        if (msg != "") {
+            req.setAttribute("errorMessage", msg);
         } else {
             req.setAttribute("errorMessage", "caricamento file fallito");
         }
@@ -225,14 +230,41 @@ public class FileUploadServlet extends HttpServlet {
     }
 
     private void handleError(HttpServletRequest req, HttpServletResponse resp, Exception e) throws ServletException, IOException {
-        // Log robusto per capire cosa succede
         String ipAddress = req.getRemoteAddr();
         Object userIdObj = req.getSession().getAttribute("userId");
         String userId = (userIdObj != null) ? userIdObj.toString() : "Anonymous";
-
         LOGGER.log(java.util.logging.Level.SEVERE, "Upload error - User: " + userId + ", IP: " + ipAddress, e);
-
         req.setAttribute("errorMessage", "caricamento file fallito");
         req.getRequestDispatcher("/WEB-INF/views/upload.jsp").forward(req, resp);
+    }
+
+    // --- METODO PER LA DIMOSTRAZIONE DI CONCORRENZA (TU10) ---
+    private void updateAuditLog(String username, String fileName) {
+        Path logPath = Paths.get(TARGET_STORAGE_PATH, "audit_log.txt");
+
+        // 1. Il blocco synchronized garantisce l'accesso esclusivo alla risorsa (TU10)
+        synchronized(logLock) {
+            try {
+                String threadName = Thread.currentThread().getName();
+
+                LOGGER.info("[" + threadName + "] Tenta di scrivere nel registro di audit...");
+
+                String entry = String.format("[%s] USERID: %s | FILE: %s | THREAD: %s\n",
+                        java.time.LocalDateTime.now(), username, fileName, threadName);
+
+
+                Files.write(logPath,
+                        entry.getBytes(java.nio.charset.StandardCharsets.UTF_8),
+                        java.nio.file.StandardOpenOption.CREATE, // Crea il file se non esiste
+                        java.nio.file.StandardOpenOption.APPEND); // Aggiunge in coda senza sovrascrivere
+
+
+
+                LOGGER.info("[" + threadName + "] Scrittura completata e lock rilasciato.");
+
+            } catch (IOException  e) {
+                LOGGER.log(java.util.logging.Level.SEVERE, "Errore di concorrenza nel log di audit", e);
+            }
+        }
     }
 }
