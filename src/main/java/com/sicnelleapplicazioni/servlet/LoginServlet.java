@@ -99,6 +99,22 @@ public class LoginServlet extends HttpServlet {
                     String redirectUrl = (String) session.getAttribute("redirectAfterLogin");
                     session.removeAttribute("redirectAfterLogin");
 
+                    // Costruzione manuale dell'Header
+                    // HttpOnly: JavaScript non può leggere il cookie (Anti-XSS)
+                    // Secure: Il cookie viaggia solo su HTTPS
+                    // SameSite=Strict: Il cookie non viene inviato se arrivi da un altro sito (Anti-CSRF)
+                    String sessionId = session.getId();
+                    String contextPath = req.getContextPath();
+                    if (contextPath == null || contextPath.isEmpty()) {
+                        contextPath = "/";
+                    }
+
+                    String cookieHeader = String.format("JSESSIONID=%s; Path=%s; HttpOnly; Secure; SameSite=Strict",
+                            sessionId, contextPath);
+
+                    // Uso setHeader (non addHeader) per sovrascrivere quello di default di Tomcat
+                    resp.setHeader("Set-Cookie", cookieHeader);
+
                     if (redirectUrl != null && !redirectUrl.isEmpty()) {
                         resp.sendRedirect(redirectUrl);
                     } else {

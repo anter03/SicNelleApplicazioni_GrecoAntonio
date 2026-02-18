@@ -53,7 +53,6 @@ public class RateLimitingFilter implements Filter {
             // 2. CONTROLLO USERNAME (solo se presente)
             if (username != null && !username.trim().isEmpty()) {
                 // RateLimiter.create(0.5) = 1 permesso ogni 2 secondi.
-                // Ottimo per prevenire brute-force sulle password.
                 RateLimiter forUser = usernameRateLimiters.get(username, () -> RateLimiter.create(0.5));
                 
                 if (!forUser.tryAcquire()) {
