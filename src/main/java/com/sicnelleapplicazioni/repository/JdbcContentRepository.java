@@ -32,7 +32,7 @@ public class JdbcContentRepository implements ContentRepository {
             if (affectedRows == 0) {
                 throw new SQLException("Creating content failed, no rows affected.");
             }
-            // No need to retrieve generated keys for UUID, as it's generated in Content constructor
+
         } catch (SQLException e) {
             System.err.println("Error saving content: " + e.getMessage());
             throw new RuntimeException("Error saving content", e);

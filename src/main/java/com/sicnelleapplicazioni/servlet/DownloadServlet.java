@@ -70,7 +70,7 @@ public class DownloadServlet extends HttpServlet {
                     out.flush();
                 } catch (IOException e) {
                     LOGGER.log(Level.SEVERE, "Error writing file to output stream for content ID: " + contentId, e);
-                    // It's likely too late to send an error to the client if the response has been committed
+
                 }
             } else {
                 LOGGER.log(Level.WARNING, "File not found for content ID: " + contentId);

@@ -20,7 +20,7 @@ public class LoginService {
         this.userRepository = userRepository;
     }
 
-    public boolean authenticate(String identifier, char[] password) { // 'identifier' can be username or email
+    public boolean authenticate(String identifier, char[] password) {
         LOGGER.log(Level.INFO, "Attempting authentication for identifier: {0}", identifier);
         if (identifier == null || identifier.trim().isEmpty() || password == null || password.length == 0) {
             LOGGER.log(Level.WARNING, "Authentication failed for identifier {0}: Invalid input.", identifier);

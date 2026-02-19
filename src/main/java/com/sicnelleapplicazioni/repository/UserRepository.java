@@ -11,7 +11,7 @@ public interface UserRepository {
     Optional<User> findByUsername(String username);
     Optional<User> findByEmail(String email);
 
-    void incrementFailedAttempts(String identifier); // Changed to 'identifier' as it could be username or email
+    void incrementFailedAttempts(String identifier);
     void resetFailedAttempts(String identifier);
     void lockAccount(String identifier);
     void unlockAccount(String identifier);

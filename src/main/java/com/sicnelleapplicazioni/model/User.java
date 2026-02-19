@@ -4,15 +4,15 @@ import java.time.Instant;
 
 public class User {
 
-    private Long id; // Corresponds to id INT IDENTITY(1,1) NOT NULL
-    private String username; // Corresponds to username NVARCHAR(20)
-    private String email; // Corresponds to email NVARCHAR(128)
-    private String passwordHash; // Corresponds to password_hash NVARCHAR(255)
-    private String salt; // Corresponds to salt NVARCHAR(64)
-    private String fullName; // Corresponds to full_name NVARCHAR(100)
-    private int failedAttempts; // Corresponds to failed_attempts INT DEFAULT 0
-    private Instant lockoutUntil; // Corresponds to lockout_until DATETIME2 NULL
-    private Instant lastLogin; // Corresponds to last_login TIMESTAMP NULL
+    private Long id;
+    private String username;
+    private String email;
+    private String passwordHash;
+    private String salt;
+    private String fullName;
+    private int failedAttempts;
+    private Instant lockoutUntil;
+    private Instant lastLogin;
 
     public User() {
         this.failedAttempts = 0;

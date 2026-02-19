@@ -66,7 +66,6 @@ public class RegistrationServlet extends HttpServlet {
             Thread.sleep(new SecureRandom().nextInt(300) + 200);
 
             if (success) {
-                // USO SESSION: il redirect crea una nuova richiesta, serve la sessione per "trasportare" il messaggio
                 req.getSession().setAttribute("successMessage", "Registrazione completata! Puoi accedere.");
                 resp.sendRedirect(req.getContextPath() + "/login");
             } else {

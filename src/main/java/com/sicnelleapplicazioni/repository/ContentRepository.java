@@ -6,10 +6,10 @@ import java.util.Optional;
 import java.util.UUID; // Import UUID
 
 public interface ContentRepository {
-    void save(Content content); // Updated to void
-    Optional<Content> findById(UUID id); // Changed parameter type
-    Optional<Content> findByInternalName(String internalName); // Renamed from findByStoredFilename
-    List<Content> findByUserId(Long userId); // Changed parameter type
-    List<Content> findAll(); // Still needed for general listing
-    void delete(UUID id); // Renamed from deleteById, changed parameter type
+    void save(Content content);
+    Optional<Content> findById(UUID id);
+    Optional<Content> findByInternalName(String internalName);
+    List<Content> findByUserId(Long userId);
+    List<Content> findAll();
+    void delete(UUID id);
 }

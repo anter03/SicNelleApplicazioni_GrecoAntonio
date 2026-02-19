@@ -8,11 +8,10 @@ import com.sicnelleapplicazioni.util.ValidationUtil;
 
 import java.util.Arrays;
 import java.time.Instant;
-// Removed Logger imports
+
 
 public class RegistrationService {
 
-    // Removed Logger field
 
     private final UserRepository userRepository;
 
@@ -35,7 +34,7 @@ public class RegistrationService {
                 return false;
             }
 
-            // Check if username or email already exists
+
             if (userRepository.findByUsername(username).isPresent()) {
                 return false;
             }
@@ -58,7 +57,7 @@ public class RegistrationService {
             userRepository.save(user);
             return true;
         } catch (Exception e) {
-            // Re-throw as RuntimeException or handle more gracefully if needed
+
             throw new RuntimeException("Error during registration for username: " + username + ", email: " + email, e);
         } finally {
             Arrays.fill(password, '\0');

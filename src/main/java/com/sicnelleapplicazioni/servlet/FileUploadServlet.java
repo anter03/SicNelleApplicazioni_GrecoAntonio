@@ -35,7 +35,7 @@ public class FileUploadServlet extends HttpServlet {
 
     private static final Logger LOGGER = Logger.getLogger(FileUploadServlet.class.getName());
 
-    // Percorso finale dove vuoi i file (Desktop)
+    // Percorso finale dei file
     private static final String TARGET_STORAGE_PATH = ConfigManager.getProperty("uploadFilePath");
 
     // Risorsa condivisa: oggetto monitor per il lock (Per Test TU10)
@@ -53,7 +53,7 @@ public class FileUploadServlet extends HttpServlet {
                 Files.createDirectories(uploadPath);
             }
 
-            // 2. FIX PER L'ERRORE SMART TOMCAT:
+            // 2. FIX PER odioso errore SMART TOMCAT:
             File tempDir = (File) getServletContext().getAttribute(ServletContext.TEMPDIR);
             if (tempDir != null && !tempDir.exists()) {
                 boolean created = tempDir.mkdirs();
@@ -169,7 +169,7 @@ public class FileUploadServlet extends HttpServlet {
         public String call() throws Exception {
             Path finalDestination = null;
             try {
-                // Validate MIME Type REAL on the temporary file
+                // Validate MIME Type REAL
                 String detectedMimeType = processorTika.detect(tempFilePath.toFile());
 
                 if (!MediaType.TEXT_PLAIN.toString().equals(detectedMimeType)) {
@@ -194,11 +194,9 @@ public class FileUploadServlet extends HttpServlet {
 
                 processorContentRepository.save(content);
 
-                // --- PUNTO DI INTEGRAZIONE TU10 ---
-                // Qui chiamiamo la funzione di log sincronizzata.
-                // Poiché UploadProcessor è una inner class, può chiamare i metodi della classe esterna.
+                // --- TU10 ---
+
                 updateAuditLog(String.valueOf(userId), originalFileName);
-                // ----------------------------------
 
                 LOGGER.info("File '" + originalFileName + "' caricato e processato con successo da thread separato.");
                 return "File '" + originalFileName + "' caricato con successo!";
@@ -207,7 +205,7 @@ public class FileUploadServlet extends HttpServlet {
                 LOGGER.log(java.util.logging.Level.SEVERE, "Errore durante l'elaborazione del file in thread separato: " + originalFileName, e);
                 return "Errore durante l'elaborazione del file: " + e.getMessage();
             } finally {
-                // Ensure temporary file is always deleted after processing
+                // Controllo che il file temporaneo venga cancelato
                 if (tempFilePath != null && Files.exists(tempFilePath)) {
                     try {
                         Files.delete(tempFilePath);
@@ -238,7 +236,7 @@ public class FileUploadServlet extends HttpServlet {
         req.getRequestDispatcher("/WEB-INF/views/upload.jsp").forward(req, resp);
     }
 
-    // --- METODO PER LA DIMOSTRAZIONE DI CONCORRENZA (TU10) ---
+    // ---  (TU10) ---
     private void updateAuditLog(String username, String fileName) {
         Path logPath = Paths.get(TARGET_STORAGE_PATH, "audit_log.txt");
 

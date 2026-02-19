@@ -15,12 +15,11 @@ import java.util.concurrent.TimeUnit;
 @WebFilter("/login")
 public class RateLimitingFilter implements Filter {
 
-    // Usciamo dalla logica della Map infinita.
-    // Usiamo una Cache che "dimentica" gli IP dopo 15 minuti di inattività.
-    // Questo protegge il server dal riempimento della RAM (DoS attack).
+
+    //  Cache che "dimentica" gli IP dopo 15 minuti di inattività.
     private final Cache<String, RateLimiter> ipRateLimiters = CacheBuilder.newBuilder()
             .expireAfterAccess(15, TimeUnit.MINUTES)
-            .maximumSize(10000) // Protezione massima: non memorizza più di 10k IP contemporaneamente
+            .maximumSize(10000) //non memorizza più di 10k IP contemporaneamente
             .build();
 
     private final Cache<String, RateLimiter> usernameRateLimiters = CacheBuilder.newBuilder()
@@ -41,7 +40,6 @@ public class RateLimitingFilter implements Filter {
         try {
             // 1. CONTROLLO IP
             // RateLimiter.create(2.0) = 2 permessi al secondo.
-            // Permette un uso fluido ma blocca script impazziti.
             RateLimiter forIp = ipRateLimiters.get(ipAddress, () -> RateLimiter.create(2.0));
             
             if (!forIp.tryAcquire()) {
@@ -63,7 +61,6 @@ public class RateLimitingFilter implements Filter {
             }
 
         } catch (ExecutionException e) {
-            // Gestione errore nel caso improbabile che la cache fallisca la creazione
             throw new ServletException("Rate limiter error", e);
         }
 
@@ -72,11 +69,11 @@ public class RateLimitingFilter implements Filter {
 
     @Override
     public void init(FilterConfig filterConfig) throws ServletException {
-        // Inizializzazione se necessaria
+
     }
 
     @Override
     public void destroy() {
-        // Pulizia se necessaria
+
     }
 }

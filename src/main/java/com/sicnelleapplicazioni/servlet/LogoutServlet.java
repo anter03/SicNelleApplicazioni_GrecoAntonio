@@ -30,22 +30,22 @@ public class LogoutServlet extends HttpServlet {
         if (cookies != null) {
             for (Cookie cookie : cookies) {
                 // Invalidate JSESSIONID or any other session-related cookies
-                if (cookie.getName().equalsIgnoreCase("JSESSIONID") || cookie.getName().equals("YOUR_APP_SESSION_COOKIE")) {
+                if (cookie.getName().equalsIgnoreCase("JSESSIONID") ) {
                     cookie.setMaxAge(0); // Set cookie to expire immediately
                     cookie.setPath(req.getContextPath() + "/"); // Set path to root of application
-                    cookie.setHttpOnly(true); // Ensure HttpOnly flag
-                    cookie.setSecure(req.isSecure()); // Ensure Secure flag if HTTPS
+                    cookie.setHttpOnly(true);
+                    cookie.setSecure(req.isSecure());
                     resp.addCookie(cookie);
                 }
             }
         }
 
         // Set no-cache headers
-        resp.setHeader("Cache-Control", "no-cache, no-store, must-revalidate"); // HTTP 1.1.
-        resp.setHeader("Pragma", "no-cache");    // HTTP 1.0.
-        resp.setHeader("Expires", "0");          // Proxies.
+        resp.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        resp.setHeader("Pragma", "no-cache");
+        resp.setHeader("Expires", "0");
 
-        // Redirect to login page
+        // Redirect to login
         resp.sendRedirect(req.getContextPath() + "/login");
     }
 }

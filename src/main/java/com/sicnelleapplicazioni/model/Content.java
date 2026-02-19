@@ -5,14 +5,14 @@ import java.util.UUID; // Import UUID
 
 public class Content {
     private UUID id;
-    private Long userId; // Changed from UUID to Long
+    private Long userId;
     private String originalName;
     private String internalName;
     private String mimeType;
     private long size;
     private String filePath;
     private LocalDateTime createdAt;
-    private String contentText; // Re-introduced for display purposes
+    private String contentText;
     private String authorUsername;
 
     public Content() {

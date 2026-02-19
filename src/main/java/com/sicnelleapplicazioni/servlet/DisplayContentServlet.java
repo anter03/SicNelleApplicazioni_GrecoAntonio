@@ -25,8 +25,7 @@ import java.util.logging.Level;
 public class DisplayContentServlet extends HttpServlet {
 
     private static final Logger LOGGER = Logger.getLogger(DisplayContentServlet.class.getName());
-    // UPLOAD_DIRECTORY should be in configuration, but keeping it here for now
-    // This is the base directory where files are stored
+
     private static final String BASE_FILE_STORAGE_PATH = ConfigManager.getProperty("uploadFilePath");
     private ContentRepository contentRepository;
 
@@ -50,14 +49,14 @@ public class DisplayContentServlet extends HttpServlet {
 
         if (session != null && session.getAttribute("userId") != null) {
             try {
-                // RF6: Show content from all users
+                // RF6: Show content
                 contents = contentRepository.findAll();
 
                 for (Content content : contents) {
-                    // Use content.getFilePath() which is the absolute path where the file is stored
+                    // Uso il full path sul dile system  del file  content.getFilePath()
                     Path fullFilePath = Paths.get(content.getFilePath());
                     if (Files.exists(fullFilePath)) {
-                        // Read content text for preview
+
                         content.setContentText(Files.readString(fullFilePath, StandardCharsets.UTF_8));
                     } else {
                         LOGGER.log(Level.WARNING, "Content file not found: " + fullFilePath.toString() + " for content ID: " + content.getId());

@@ -11,7 +11,7 @@ import java.util.logging.Logger; // Import Logger
 
 public class JdbcUserRepository implements UserRepository {
 
-    private static final Logger LOGGER = Logger.getLogger(JdbcUserRepository.class.getName()); // Add Logger
+    private static final Logger LOGGER = Logger.getLogger(JdbcUserRepository.class.getName());
 
     @Override
     public User save(User user) {

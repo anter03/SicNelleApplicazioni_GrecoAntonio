@@ -81,8 +81,7 @@ public class DeleteServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        // To prevent accidental deletion via a simple link click, we can show a confirmation page.
-        // For this implementation, we will redirect to the home page with an error message.
+
         req.getSession().setAttribute("errorMessage", "Deletion must be performed via a POST request.");
         resp.sendRedirect(req.getContextPath() + "/home");
     }
